@@ -345,7 +345,7 @@ class AttnBlock(nn.Module):
         self.norm2 = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6)
         mlp_hidden_dim = int(hidden_size * mlp_ratio)
         approx_gelu = lambda x: 0.5 * x * (1 + torch.tanh((x * (1.27323954 + 0.044715 * x * x))))
-        #approx_gelu = lambda: nn.GELU(approximate="tanh")
+        #approx_gelu = lambda x: nn.GELU(approximate="tanh")
         self.mlp = Mlp(
             in_features=hidden_size,
             hidden_features=mlp_hidden_dim,

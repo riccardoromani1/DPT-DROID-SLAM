@@ -36,7 +36,7 @@ class DenseOpticalTracker(nn.Module):
 
     def get_flow_frame_to_frame(self, data, u, v, **kwargs):
         video = data["video"]
-        T, C, h, w = data["video"].shape
+        B, T, C, h, w = data["video"].shape
         tracks = []
         H, W = self.resolution
 

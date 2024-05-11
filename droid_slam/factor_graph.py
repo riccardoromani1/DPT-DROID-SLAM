@@ -47,6 +47,7 @@ class FactorGraph:
         self.corr, self.net, self.inp = None, None, None
         self.damping = 1e-6 * torch.ones_like(self.video.disps)
 
+        self.flow_dot = torch.zeros([1, 0, ht, wd, 2], device=device, dtype=torch.float)
         self.target = torch.zeros([1, 0, ht, wd, 2], device=device, dtype=torch.float)
         self.weight = torch.zeros([1, 0, ht, wd, 2], device=device, dtype=torch.float)
 
@@ -142,9 +143,12 @@ class FactorGraph:
             #adding the flow from dot
             ii_cpu = ii.cpu().numpy()
             jj_cpu = jj.cpu().numpy()
+            flow_dot_list = []
             for x in range(len(ii_cpu)):
-                flow = self.Dot_Model({"video":self.video.imagesdot}, mode="get_flow_frame_to_frame", u=ii_cpu[x], v=jj_cpu[x], **vars(self.args))
-            
+                Data = {"video":self.video.imagesdot[0:8,:,:,:][None]}
+                flow = self.Dot_Model({"video":Data['video']}, mode="get_flow_frame_to_frame", u=ii_cpu[x], v=jj_cpu[x], **vars(self.args))
+                flow_dot_list.append(flow)
+            flow_dot = torch.stack(flow_dot_list, dim=1)
             target, _ = self.video.reproject(ii, jj)
             weight = torch.zeros_like(target)
 
@@ -155,7 +159,9 @@ class FactorGraph:
         # reprojection factors
         self.net = net if self.net is None else torch.cat([self.net, net], 1)
 
-        self.target = torch.cat([self.target, target], 1)
+        self.flow_dot = torch.cat([self.flow_dot, flow_dot], 1)
+        self.target = torch.cat([self.target, flow_dot], 1)
+        #self.target = torch.cat([self.target, target], 1)
         self.weight = torch.cat([self.weight, weight], 1)
 
     @torch.cuda.amp.autocast(enabled=True)

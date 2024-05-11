@@ -37,7 +37,7 @@ class OpticalFlow(nn.Module):
         src_frame, tgt_frame = data["src_frame"], data["tgt_frame"]
         K = boundaries_size * 2 + 1
         D = boundaries_dilation
-        _, H, W = src_frame.shape
+        B,_, H, W = src_frame.shape
         reflect = torch.nn.ReflectionPad2d(K // 2)
         sobel_kernel = get_sobel_kernel(K).to(src_frame.device)
         flow, _ = self.model(src_frame, tgt_frame)

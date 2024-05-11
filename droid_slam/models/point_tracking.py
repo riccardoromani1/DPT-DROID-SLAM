@@ -36,7 +36,7 @@ class PointTracker(nn.Module):
     def get_tracks_at_motion_boundaries(self, data, num_tracks=4096, sim_tracks=1024, sample_mode="all", **kwargs):
         video = data["video"]
         N, S = num_tracks, sim_tracks
-        T, _, H, W = video.shape
+        B, T, _, H, W = video.shape
         assert N % S == 0
 
         # Define sampling strategy
