@@ -143,9 +143,17 @@ class FactorGraph:
             #adding the flow from dot
             ii_cpu = ii.cpu().numpy()
             jj_cpu = jj.cpu().numpy()
+            min_frame = min(np.min(ii_cpu),np.min(jj_cpu))
+            max_frame = max(np.max(ii_cpu),np.max(jj_cpu))
             flow_dot_list = []
+            ii_cpu = ii_cpu - min_frame
+            jj_cpu = jj_cpu - min_frame
+            # We need at least 5 frames for dot
+            if (max_frame - min_frame) <= 5:
+                min_frame = max_frame - 5
+
             for x in range(len(ii_cpu)):
-                Data = {"video":self.video.imagesdot[0:8,:,:,:][None]}
+                Data = {"video":self.video.imagesdot[min_frame:max_frame+1,:,:,:][None]}
                 flow = self.Dot_Model({"video":Data['video']}, mode="get_flow_frame_to_frame", u=ii_cpu[x], v=jj_cpu[x], **vars(self.args))
                 flow_dot_list.append(flow)
             flow_dot = torch.stack(flow_dot_list, dim=1)
@@ -199,7 +207,7 @@ class FactorGraph:
 
         with self.video.get_lock():
             self.video.images[ix] = self.video.images[ix+1]
-            self.video.imagesdot[ix] = self.video.images[ix+1]
+            self.video.imagesdot[ix] = self.video.imagesdot[ix+1]
             self.video.poses[ix] = self.video.poses[ix+1]
             self.video.disps[ix] = self.video.disps[ix+1]
             self.video.disps_sens[ix] = self.video.disps_sens[ix+1]
@@ -248,7 +256,7 @@ class FactorGraph:
         with torch.cuda.amp.autocast(enabled=False):
             #self.target = predict_dot
             
-            self.target = coords1 + delta.to(dtype=torch.float)
+            #self.target = coords1 + delta.to(dtype=torch.float)
             self.weight = weight.to(dtype=torch.float)
 
             ht, wd = self.coords0.shape[0:2]
@@ -266,16 +274,16 @@ class FactorGraph:
 
 
             damping = .2 * self.damping[torch.unique(ii)].contiguous() + EP
-            #zerod = torch.ones(damping.shape, device=self.device)*0.0000001
+            zerod = torch.ones(damping.shape, device=self.device)*0.0000001
 
 
             target = target.view(-1, ht, wd, 2).permute(0,3,1,2).contiguous()
             weight = weight.view(-1, ht, wd, 2).permute(0,3,1,2).contiguous()
 
-            #fake_weight = torch.ones(weight.shape, device=self.device)
+            fake_weight = torch.ones(weight.shape, device=self.device)/(ht*wd)
 
             # dense bundle adjustment
-            self.video.ba(target, weight, damping, ii, jj, t0, t1, 
+            self.video.ba(target, fake_weight, zerod, ii, jj, t0, t1, 
                 itrs=itrs, lm=1e-4, ep=0.1, motion_only=motion_only)
         
             if self.upsample:
