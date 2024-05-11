@@ -7,7 +7,6 @@ from droid_net import DroidNet
 
 import geom.projective_ops as pops
 from modules.corr import CorrBlock
-from torch.nn import functional as F
 
 
 class MotionFilter:
@@ -57,15 +56,11 @@ class MotionFilter:
         # extract features
         gmap = self.__feature_encoder(inputs)
 
-        imagedot = image[0] / 255
-        imagedot = F.interpolate(imagedot[None], size=(ht,wd), mode="bilinear")[0]
-
-
         ### always add first frame to the depth video ###
         if self.video.counter.value == 0:
             net, inp = self.__context_encoder(inputs[:,[0]])
             self.net, self.inp, self.fmap = net, inp, gmap
-            self.video.append(tstamp, image[0], Id, 1.0, depth, intrinsics / 8.0, gmap, net[0,0], inp[0,0], imagedot)
+            self.video.append(tstamp, image[0], Id, 1.0, depth, intrinsics / 8.0, gmap, net[0,0], inp[0,0])
 
         ### only add new frame if there is enough motion ###
         else:                
@@ -81,7 +76,7 @@ class MotionFilter:
                 self.count = 0
                 net, inp = self.__context_encoder(inputs[:,[0]])
                 self.net, self.inp, self.fmap = net, inp, gmap
-                self.video.append(tstamp, image[0], None, None, depth, intrinsics / 8.0, gmap, net[0], inp[0], imagedot)
+                self.video.append(tstamp, image[0], None, None, depth, intrinsics / 8.0, gmap, net[0], inp[0])
 
             else:
                 self.count += 1

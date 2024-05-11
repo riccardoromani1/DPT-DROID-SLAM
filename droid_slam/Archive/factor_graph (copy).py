@@ -1,18 +1,15 @@
 import torch
 import lietorch
 import numpy as np
-import argparse
 
 import matplotlib.pyplot as plt
 from lietorch import SE3
 from modules.corr import CorrBlock, AltCorrBlock
 import geom.projective_ops as pops
-from models.dense_optical_tracking import DenseOpticalTracker
-from droid_slam.utils.options.base_options import BaseOptions
 
 
 class FactorGraph:
-    def __init__(self, video, update_op, args, device="cuda:0", corr_impl="volume", max_factors=-1, upsample=False):
+    def __init__(self, video, update_op, device="cuda:0", corr_impl="volume", max_factors=-1, upsample=False):
         self.video = video
         self.update_op = update_op
         self.device = device
@@ -20,24 +17,9 @@ class FactorGraph:
         self.corr_impl = corr_impl
         self.upsample = upsample
 
-
-        self.args = args
-        
-
         # operator at 1/8 resolution
         self.ht = ht = video.ht // 8
         self.wd = wd = video.wd // 8
-
-        self.Dot_Model = DenseOpticalTracker(
-            height=self.ht,
-            width=self.wd,
-            tracker_config="droid_slam/configs/cotracker2_patch_4_wind_8.json",
-            tracker_path="droid_slam/checkpoints/movi_f_cotracker2_patch_4_wind_8.pth",
-            estimator_config="droid_slam/configs/raft_patch_8.json",
-            estimator_path="droid_slam/checkpoints/cvo_raft_patch_8.pth",
-            refiner_config="droid_slam/configs/raft_patch_4_alpha.json",
-            refiner_path="droid_slam/checkpoints/movi_f_raft_patch_4_alpha.pth",
-        ).to(device=device)
 
         self.coords0 = pops.coords_grid(ht, wd, device=device)
         self.ii = torch.as_tensor([], dtype=torch.long, device=device)
@@ -58,7 +40,6 @@ class FactorGraph:
 
         self.target_inac = torch.zeros([1, 0, ht, wd, 2], device=device, dtype=torch.float)
         self.weight_inac = torch.zeros([1, 0, ht, wd, 2], device=device, dtype=torch.float)
-    
 
     def __filter_repeated_edges(self, ii, jj):
         """ remove duplicate edges """
@@ -139,12 +120,6 @@ class FactorGraph:
             self.inp = inp if self.inp is None else torch.cat([self.inp, inp], 1)
 
         with torch.cuda.amp.autocast(enabled=False):
-            #adding the flow from dot
-            ii_cpu = ii.cpu().numpy()
-            jj_cpu = jj.cpu().numpy()
-            for x in range(len(ii_cpu)):
-                flow = self.Dot_Model({"video":self.video.imagesdot}, mode="get_flow_frame_to_frame", u=ii_cpu[x], v=jj_cpu[x], **vars(self.args))
-            
             target, _ = self.video.reproject(ii, jj)
             weight = torch.zeros_like(target)
 
@@ -193,7 +168,6 @@ class FactorGraph:
 
         with self.video.get_lock():
             self.video.images[ix] = self.video.images[ix+1]
-            self.video.imagesdot[ix] = self.video.images[ix+1]
             self.video.poses[ix] = self.video.poses[ix+1]
             self.video.disps[ix] = self.video.disps[ix+1]
             self.video.disps_sens[ix] = self.video.disps_sens[ix+1]
