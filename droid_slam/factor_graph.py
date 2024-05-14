@@ -166,8 +166,8 @@ class FactorGraph:
             #     flow = self.Dot_Model(data, mode="get_flow_frame_to_frame", u=ii_cpu[x], v=jj_cpu[x], **vars(self.args))
             #     flow_dot_list.append(flow)
             # flow_dot = torch.stack(flow_dot_list, dim=1)
-            flow_dot = self.dot_predict_flow(data,ii_cpu,jj_cpu)
-            target, _ = self.video.reproject(ii, jj)
+            target = self.dot_predict_flow(data,ii_cpu,jj_cpu)
+            #target, _ = self.video.reproject(ii, jj)
             weight = torch.zeros_like(target)
 
         self.ii = torch.cat([self.ii, ii], 0)
@@ -176,8 +176,8 @@ class FactorGraph:
 
         # reprojection factors
         self.net = net if self.net is None else torch.cat([self.net, net], 1)
-        self.flow_dot = torch.cat([self.flow_dot, flow_dot], 1)
-        self.target = torch.cat([self.target, flow_dot], 1)
+        #self.flow_dot = torch.cat([self.flow_dot, flow_dot], 1)
+        self.target = torch.cat([self.target, target], 1)
         #self.target = torch.cat([self.target, target], 1)
         self.weight = torch.cat([self.weight, weight], 1)
 
@@ -185,7 +185,7 @@ class FactorGraph:
         video = data["video"]
         B, T, C, H, W = data["video"].shape
         tracks = []
-
+        sparse_points = []
         init = self.point_tracker(data, mode= "tracks_at_motion_boundaries" )["tracks"]
         init = torch.stack([init[..., 0] / (W- 1), init[..., 1] / (H - 1), init[..., 2]], dim=-1)
 
@@ -202,10 +202,15 @@ class FactorGraph:
             pred = self.optical_flow_refiner(sub_data, mode="flow_with_tracks_init")
             # pred["src_points"] = data["src_points"]
             # pred["tgt_points"] = data["tgt_points"]
-            flow, alpha = pred["flow"], pred["alpha"]
+            flow, alpha,coarse_flow = pred["flow"], pred["alpha"], pred["coarse_flow"]
             tracks.append(flow + grid)
+            sparse_points.append(coarse_flow)
         tracks = torch.stack(tracks, dim=1)
         tracks = tracks.view(1, len(ii), H, W, 2)
+        breakpoint()
+
+        sparse_points = torch.stack(sparse_points, dim=1)
+
         return tracks
     
     @torch.cuda.amp.autocast(enabled=True)

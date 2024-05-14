@@ -39,7 +39,7 @@ class PointTracker(nn.Module):
         else:
             raise ValueError(f"Unknown mode {mode}")
 
-    def get_tracks_at_motion_boundaries(self, data, num_tracks=4096, sim_tracks=1024, sample_mode="all", **kwargs):
+    def get_tracks_at_motion_boundaries(self, data, num_tracks=60, sim_tracks=60, sample_mode="all", **kwargs):
         video = data["video"]
         N, S = num_tracks, sim_tracks
         B, T, _, H, W = video.shape
