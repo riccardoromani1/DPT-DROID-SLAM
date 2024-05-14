@@ -9,7 +9,13 @@ from utils.torch import sample_points, sample_mask_points, get_grid
 
 
 class PointTracker(nn.Module):
-    def __init__(self,  height, width, tracker_config, tracker_path, estimator_config, estimator_path):
+    def __init__(self,  
+                 height, 
+                 width, 
+                 tracker_config="droid_slam/configs/cotracker2_patch_4_wind_8.json", 
+                 tracker_path="droid_slam/checkpoints/movi_f_cotracker2_patch_4_wind_8.pth",
+                 estimator_config="droid_slam/configs/raft_patch_8.json",
+                 estimator_path="droid_slam/checkpoints/cvo_raft_patch_8.pth"):
         super().__init__()
         model_args = read_config(tracker_config)
         model_dict = {

@@ -7,8 +7,9 @@ import matplotlib.pyplot as plt
 from lietorch import SE3
 from modules.corr import CorrBlock, AltCorrBlock
 import geom.projective_ops as pops
-from models.dense_optical_tracking import DenseOpticalTracker
+from models.dense_optical_tracking import DenseOpticalTracker, PointTracker, OpticalFlow
 from droid_slam.utils.options.base_options import BaseOptions
+from utils.torch import get_grid
 
 
 class FactorGraph:
@@ -27,6 +28,10 @@ class FactorGraph:
         # operator at 1/8 resolution
         self.ht = ht = video.ht // 8
         self.wd = wd = video.wd // 8
+        self.point_tracker = PointTracker(self.ht, 
+                                          self.wd).to(device=device)
+        self.optical_flow_refiner = OpticalFlow(self.ht, 
+                                                self.wd).to(device=device)
 
         self.Dot_Model = DenseOpticalTracker(
             height=self.ht,
@@ -48,8 +53,11 @@ class FactorGraph:
         self.damping = 1e-6 * torch.ones_like(self.video.disps)
 
         self.flow_dot = torch.zeros([1, 0, ht, wd, 2], device=device, dtype=torch.float)
+        self.coarse_flow = torch.zeros([1, 0, ht, wd, 2], device=device, dtype=torch.float)
         self.target = torch.zeros([1, 0, ht, wd, 2], device=device, dtype=torch.float)
         self.weight = torch.zeros([1, 0, ht, wd, 2], device=device, dtype=torch.float)
+        self.init = None
+
 
         # inactive factors
         self.ii_inac = torch.as_tensor([], dtype=torch.long, device=device)
@@ -146,17 +154,19 @@ class FactorGraph:
             min_frame = min(np.min(ii_cpu),np.min(jj_cpu))
             max_frame = max(np.max(ii_cpu),np.max(jj_cpu))
             flow_dot_list = []
-            ii_cpu = ii_cpu - min_frame
-            jj_cpu = jj_cpu - min_frame
+
             # We need at least 5 frames for dot
             if (max_frame - min_frame) <= 5:
                 min_frame = max_frame - 5
-
-            for x in range(len(ii_cpu)):
-                Data = {"video":self.video.imagesdot[min_frame:max_frame+1,:,:,:][None]}
-                flow = self.Dot_Model({"video":Data['video']}, mode="get_flow_frame_to_frame", u=ii_cpu[x], v=jj_cpu[x], **vars(self.args))
-                flow_dot_list.append(flow)
-            flow_dot = torch.stack(flow_dot_list, dim=1)
+            ii_cpu = ii_cpu - min_frame
+            jj_cpu = jj_cpu - min_frame
+            data = {"video":self.video.imagesdot[min_frame:max_frame+1,:,:,:][None]}
+            # self.init = self.point_tracker(data, mode= "tracks_at_motion_boundaries" )["tracks"]
+            # for x in range(len(ii_cpu)):
+            #     flow = self.Dot_Model(data, mode="get_flow_frame_to_frame", u=ii_cpu[x], v=jj_cpu[x], **vars(self.args))
+            #     flow_dot_list.append(flow)
+            # flow_dot = torch.stack(flow_dot_list, dim=1)
+            flow_dot = self.dot_predict_flow(data,ii_cpu,jj_cpu)
             target, _ = self.video.reproject(ii, jj)
             weight = torch.zeros_like(target)
 
@@ -166,12 +176,38 @@ class FactorGraph:
 
         # reprojection factors
         self.net = net if self.net is None else torch.cat([self.net, net], 1)
-
         self.flow_dot = torch.cat([self.flow_dot, flow_dot], 1)
         self.target = torch.cat([self.target, flow_dot], 1)
         #self.target = torch.cat([self.target, target], 1)
         self.weight = torch.cat([self.weight, weight], 1)
 
+    def dot_predict_flow(self,data,ii,jj):
+        video = data["video"]
+        B, T, C, H, W = data["video"].shape
+        tracks = []
+
+        init = self.point_tracker(data, mode= "tracks_at_motion_boundaries" )["tracks"]
+        init = torch.stack([init[..., 0] / (W- 1), init[..., 1] / (H - 1), init[..., 2]], dim=-1)
+
+        grid = get_grid(H, W, device=video.device)
+        grid[..., 0] *= (W - 1)
+        grid[..., 1] *= (H - 1)
+        for x in range(len(ii)):
+            sub_data = {
+                "src_frame": data["video"][:, ii[x]],
+                "tgt_frame": data["video"][:, jj[x]],
+                "src_points": init[:, ii[x]],
+                "tgt_points": init[:, jj[x]]
+            }
+            pred = self.optical_flow_refiner(sub_data, mode="flow_with_tracks_init")
+            # pred["src_points"] = data["src_points"]
+            # pred["tgt_points"] = data["tgt_points"]
+            flow, alpha = pred["flow"], pred["alpha"]
+            tracks.append(flow + grid)
+        tracks = torch.stack(tracks, dim=1)
+        tracks = tracks.view(1, len(ii), H, W, 2)
+        return tracks
+    
     @torch.cuda.amp.autocast(enabled=True)
     def rm_factors(self, mask, store=False):
         """ drop edges from factor graph """

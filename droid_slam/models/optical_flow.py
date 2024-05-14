@@ -10,7 +10,11 @@ from utils.torch import get_grid, get_sobel_kernel
 
 
 class OpticalFlow(nn.Module):
-    def __init__(self, height, width, config, load_path):
+    def __init__(self, 
+                 height, 
+                 width, 
+                 config="droid_slam/configs/raft_patch_4_alpha.json",
+                 load_path="droid_slam/checkpoints/movi_f_raft_patch_4_alpha.pth"):
         super().__init__()
         model_args = read_config(config)
         model_dict = {"raft": RAFT}

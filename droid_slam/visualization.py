@@ -147,7 +147,7 @@ def droid_visualization(video, device="cuda:0"):
     vis.register_key_callback(ord("S"), increase_filter)
     vis.register_key_callback(ord("A"), decrease_filter)
 
-    vis.create_window(height=540, width=960)
+    vis.create_window(height=320, width=480)
     vis.get_render_option().load_from_json("misc/renderoption.json")
 
     vis.run()
