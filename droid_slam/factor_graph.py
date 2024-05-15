@@ -2,6 +2,7 @@ import torch
 import lietorch
 import numpy as np
 import argparse
+import torch.nn.functional as F
 
 import matplotlib.pyplot as plt
 from lietorch import SE3
@@ -20,7 +21,7 @@ class FactorGraph:
         self.max_factors = max_factors
         self.corr_impl = corr_impl
         self.upsample = upsample
-
+        breakpoint()
 
         self.args = args
         
@@ -259,6 +260,25 @@ class FactorGraph:
         self.jj[self.jj >= ix] -= 1
         self.rm_factors(m, store=False)
 
+    def local_variance(self,flow, kernel_size=3):
+        flow_u = flow[:,:,0]
+        flow_v = flow[:,:,1]
+        gaussian_kernel = torch.ones((1, 1, kernel_size, kernel_size), dtype=torch.float32) / (kernel_size * kernel_size)
+        mean_flow_u = F.conv2d(flow_u.unsqueeze(0).unsqueeze(0), gaussian_kernel, padding=kernel_size//2).squeeze()
+        sqr_mean_flow_u = F.conv2d((flow_u**2).unsqueeze(0).unsqueeze(0), gaussian_kernel, padding=kernel_size//2).squeeze()
+        variance_u = sqr_mean_flow_u - mean_flow_u**2
+        confidence_weights_u = 1 / (variance_u + 1e-5)  # Add epsilon to avoid division by zero
+        confidence_weights_u /= variance_u.max()
+
+        # Compute local variance for v component
+        mean_flow_v = F.conv2d(flow_v.unsqueeze(0).unsqueeze(0), gaussian_kernel, padding=kernel_size//2).squeeze()
+        sqr_mean_flow_v = F.conv2d((flow_v**2).unsqueeze(0).unsqueeze(0), gaussian_kernel, padding=kernel_size//2).squeeze()
+        variance_v = sqr_mean_flow_v - mean_flow_v**2
+        confidence_weights_v = 1 / (variance_v + 1e-5)  # Add epsilon to avoid division by zero
+        confidence_weights_v /= variance_v.max()
+        # Combine variances into a single tensor
+        return torch.stack([confidence_weights_u, confidence_weights_v], dim=-1)
+        
     @torch.cuda.amp.autocast(enabled=True)
     def get_confidence_weights_and_damping(self):
         num_frames = self.target.shape[1]
@@ -266,37 +286,13 @@ class FactorGraph:
         confidence_weights = []
         damping_factors = []
         for frame in range(num_frames):
-            target_frame = self.target[0, frame].view(-1, 2).to("cpu")  # Reshape to (height*width, 2)
-            mean_target = torch.mean(target_frame, dim=0, keepdim=True)
-            centered_target = target_frame - mean_target
-            covariance_matrix = torch.matmul(centered_target.t(), centered_target) / (target_frame.size(0) - 1)
-            
-            # Handle inf values in covariance matrix
-            large_value = 1e2
-            covariance_matrix[torch.isinf(covariance_matrix)] = large_value
-
-            # Regularize covariance matrix
-            epsilon = 1e-5
-            covariance_matrix += epsilon * torch.eye(covariance_matrix.size(0))
-
-            # Compute precision matrix (inverse of covariance matrix)
-            precision_matrix = torch.inverse(covariance_matrix)
-
-            # Extract confidence weights from the diagonal elements of the precision matrix
-            frame_confidence_weights = torch.diag(precision_matrix)
-            confidence_weights.append(frame_confidence_weights)
-
-            # Compute damping factor using eigenvalues of covariance matrix
-            eigenvalues, _ = torch.eig(covariance_matrix, eigenvectors=True)
-            frame_damping_factor = torch.max(eigenvalues[:, 0])
-            damping_factors.append(frame_damping_factor)
-
-        # Convert lists to tensors
-        confidence_weights = torch.stack(confidence_weights)
-        damping_factors = torch.stack(damping_factors)
-
-        self.weight = confidence_weights.to(dtype=torch.float)
-        self.damping[torch.unique(self.ii)] = damping_factors
+            target_frame = self.target[0, frame].to("cpu")
+            frame_confidence = self.local_variance(target_frame)
+            confidence_weights.append(frame_confidence)
+        confidence_weights = torch.stack(confidence_weights).to(dtype=torch.float32).to(self.device).view(1, num_frames, ht, wd, 2)
+        self.weight = confidence_weights.to(dtype=torch.float).to(self.device)
+  #      breakpoint()
+        return
 
     @torch.cuda.amp.autocast(enabled=True)
     def update(self, t0=None, t1=None, itrs=2, use_inactive=False, EP=1e-7, motion_only=False):
@@ -351,7 +347,8 @@ class FactorGraph:
             # dense bundle adjustment
             self.video.ba(target, weight, zerod, ii, jj, t0, t1, 
                 itrs=itrs, lm=1e-4, ep=0.1, motion_only=motion_only)
-        
+            upmask = torch.ones((8, 1, 8*8*9,ht,wd), device=self.device)*0.0000001
+
             if self.upsample:
                 self.video.upsample(torch.unique(self.ii), upmask)
 
