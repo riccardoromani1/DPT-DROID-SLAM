@@ -26,6 +26,8 @@ class MotionFilter:
 
         self.count = 0
 
+        self.mcount = 0
+
         # mean, std for image normalization
         self.MEAN = torch.as_tensor([0.485, 0.456, 0.406], device=self.device)[:, None, None]
         self.STDV = torch.as_tensor([0.229, 0.224, 0.225], device=self.device)[:, None, None]
@@ -60,12 +62,15 @@ class MotionFilter:
         imagedot = image[0] / 255
         imagedot = F.interpolate(imagedot[None], size=(ht,wd), mode="bilinear")[0]
 
+        self.mcount = self.mcount + 1
+
 
         ### always add first frame to the depth video ###
         if self.video.counter.value == 0:
             net, inp = self.__context_encoder(inputs[:,[0]])
             self.net, self.inp, self.fmap = net, inp, gmap
             self.video.append(tstamp, image[0], Id, 1.0, depth, intrinsics / 8.0, gmap, net[0,0], inp[0,0], imagedot)
+            #self.video.append(tstamp, image[0], Id, 1.0, depth, intrinsics / 8.0, gmap, net[0,0], inp[0,0], image[0])
 
         ### only add new frame if there is enough motion ###
         else:                
@@ -74,14 +79,16 @@ class MotionFilter:
             corr = CorrBlock(self.fmap[None,[0]], gmap[None,[0]])(coords0)
 
             # approximate flow magnitude using 1 update iteration
-            _, delta, weight = self.update(self.net[None], self.inp[None], corr)
+            #_, delta, weight = self.update(self.net[None], self.inp[None], corr)
 
             # check motion magnitue / add new frame to video
-            if delta.norm(dim=-1).mean().item() > self.thresh:
+            #if delta.norm(dim=-1).mean().item() > self.thresh:
+            if self.count >= 4:
                 self.count = 0
                 net, inp = self.__context_encoder(inputs[:,[0]])
                 self.net, self.inp, self.fmap = net, inp, gmap
                 self.video.append(tstamp, image[0], None, None, depth, intrinsics / 8.0, gmap, net[0], inp[0], imagedot)
+                #self.video.append(tstamp, image[0], None, None, depth, intrinsics / 8.0, gmap, net[0], inp[0], image[0])
 
             else:
                 self.count += 1

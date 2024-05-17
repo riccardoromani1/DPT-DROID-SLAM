@@ -58,7 +58,7 @@ class GraphAgg(nn.Module):
 
     def forward(self, net, ii):
         batch, num, ch, ht, wd = net.shape
-        breakpoint()
+        #breakpoint()
         net = net.view(batch*num, ch, ht, wd)
 
         _, ix = torch.unique(ii, return_inverse=True)

@@ -11,7 +11,7 @@ class DroidFrontend:
         self.video = video
         self.update_op = net.update
         self.graph = FactorGraph(video, net.update, max_factors=48, upsample=args.upsample, args=args)
-        breakpoint()
+        #breakpoint()
         # local optimization window
         self.t0 = 0
         self.t1 = 0
@@ -81,12 +81,14 @@ class DroidFrontend:
         self.graph.add_neighborhood_factors(self.t0, self.t1, r=3)
 
         for itr in range(8):
-            self.graph.update(1, use_inactive=True)
+            self.graph.update(1, use_inactive=True, old_version=True)
+            #self.graph.update(1, use_inactive=True, old_version=False)
 
         self.graph.add_proximity_factors(0, 0, rad=2, nms=2, thresh=self.frontend_thresh, remove=False)
 
         for itr in range(8):
-            self.graph.update(1, use_inactive=True)
+            self.graph.update(1, use_inactive=True, old_version=True)
+            #self.graph.update(1, use_inactive=True, old_version=False)
 
 
         # self.video.normalize()

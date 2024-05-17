@@ -113,8 +113,8 @@ if __name__ == '__main__':
     parser.add_argument("--width", type=int, default=60)
     parser.add_argument("--aspect_ratio", type=float, default=1)
     parser.add_argument("--batch_size", type=int)
-    parser.add_argument("--num_tracks", type=int, default=60)
-    parser.add_argument("--sim_tracks", type=int, default=60)
+    parser.add_argument("--num_tracks", type=int, default=1200)
+    parser.add_argument("--sim_tracks", type=int, default=1200)
     parser.add_argument("--alpha_thresh", type=float, default=0.8)
         #parser.add_argument("--is_train", type=str2bool, nargs='?', const=True, default=False)
 

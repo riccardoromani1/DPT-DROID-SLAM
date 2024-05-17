@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from tqdm import tqdm
+import math
 
 from .shelf import RAFT
 from .interpolation import interpolate
@@ -27,6 +28,8 @@ class OpticalFlow(nn.Module):
         self.register_buffer("coarse_grid", get_grid(coarse_height, coarse_width))
 
     def forward(self, data, mode, **kwargs):
+        if mode == "harris_corner":
+            return self.getcorners(data, **kwargs)
         if mode == "flow_with_tracks_init":
             return self.get_flow_with_tracks_init(data, **kwargs)
         elif mode == "motion_boundaries":
@@ -63,7 +66,88 @@ class OpticalFlow(nn.Module):
         boundaries = boundaries / boundaries.reshape(B, -1).max(dim=1)[0].reshape(B, 1, 1)
         boundaries = boundaries > boundaries_thresh
         return {"motion_boundaries": boundaries, "flow": flow}
+    
+    def get_sobel_kernels(self):
+        kernel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=torch.float32)
+        kernel_y = torch.tensor([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], dtype=torch.float32)
+        return kernel_x.unsqueeze(0).unsqueeze(0), kernel_y.unsqueeze(0).unsqueeze(0)
 
+    
+
+    def getcorners(self, data, k=0.04, threshold=0.01, **kwargs):
+        src_frame, tgt_frame = data["src_frame"], data["tgt_frame"]
+        B, _, H, W = src_frame.shape
+
+        # Convert to grayscale if necessary (assuming input is RGB)
+        if src_frame.shape[1] == 3:
+            src_gray = 0.299 * src_frame[:, 0] + 0.587 * src_frame[:, 1] + 0.114 * src_frame[:, 2]
+            tgt_gray = 0.299 * tgt_frame[:, 0] + 0.587 * tgt_frame[:, 1] + 0.114 * tgt_frame[:, 2]
+        else:
+            src_gray = src_frame
+            tgt_gray = tgt_frame
+
+        # Add channel dimension to grayscale images
+        src_gray = src_gray.unsqueeze(1)  # Shape: (B, 1, H, W)
+
+        # Get Sobel kernels
+        sobel_kernel_x, sobel_kernel_y = self.get_sobel_kernels()
+        device = src_frame.device
+        sobel_kernel_x = sobel_kernel_x.to(device)
+        sobel_kernel_y = sobel_kernel_y.to(device)
+
+        # Compute gradients using Sobel operator
+        grad_x = F.conv2d(src_gray, sobel_kernel_x, padding=1)
+        grad_y = F.conv2d(src_gray, sobel_kernel_y, padding=1)
+
+        # Compute products of derivatives
+        Ixx = grad_x *2
+        Iyy = grad_y *2
+        Ixy = grad_x * grad_y
+
+        # Apply Gaussian filter to the products of derivatives
+        kernel_size = 3
+        sigma = 1
+        Ixx = self.apply_gaussian_blur(Ixx, kernel_size=kernel_size, sigma=sigma)
+        Iyy = self.apply_gaussian_blur(Iyy, kernel_size=kernel_size, sigma=sigma)
+        Ixy = self.apply_gaussian_blur(Ixy, kernel_size=kernel_size, sigma=sigma)
+
+        # Compute the Harris response
+        det_M = Ixx * Iyy - Ixy *2
+        trace_M = Ixx + Iyy
+        harris_response = det_M - k * (trace_M *2)
+
+        # Threshold the Harris response to detect corners
+        harris_threshold = threshold * harris_response.max()
+        corners = harris_response > harris_threshold
+        corners = corners.squeeze(0)
+
+        return {"corners": corners, "harris_response": harris_response}
+
+
+    def get_gaussian_kernel(self, kernel_size=3, sigma=1.0):
+        # Create a 1D Gaussian kernel
+        def gauss(x, sigma):
+            return (1.0 / (sigma * math.sqrt(2.0 * math.pi))) * torch.exp(-0.5 * (x / sigma) ** 2)
+
+        # Create range
+        kernel_range = torch.arange(-(kernel_size // 2), kernel_size // 2 + 1, dtype=torch.float32)
+        # Apply Gaussian formula
+        kernel_1d = gauss(kernel_range, sigma)
+        kernel_1d /= kernel_1d.sum()  # Normalize
+
+        # Create 2D Gaussian kernel by outer product
+        kernel_2d = torch.outer(kernel_1d, kernel_1d)
+        kernel_2d = kernel_2d.unsqueeze(0).unsqueeze(0)  # Shape: (1, 1, kernel_size, kernel_size)
+
+        return kernel_2d
+
+    def apply_gaussian_blur(self, input, kernel_size=3, sigma=1.0):
+        B, C, H, W = input.shape
+        gaussian_kernel = self.get_gaussian_kernel(kernel_size, sigma).to(input.device)
+
+        # Apply the Gaussian kernel to each channel
+        blurred = F.conv2d(input, gaussian_kernel, padding=kernel_size // 2, groups=C)
+        return blurred
 
     def get_flow_with_tracks_init(self, data, is_train=False, interpolation_version="torch3d", alpha_thresh=0.8, **kwargs):
         coarse_flow, coarse_alpha = interpolate(data["src_points"], data["tgt_points"], self.coarse_grid,
