@@ -146,11 +146,11 @@ class FactorGraph:
             flow_dot_list = []
 
             # We need at least 5 frames for dot
-            if (max_frame - min_frame) <= 5:
-                min_frame = max_frame - 5
-            ii_cpu = ii_cpu - min_frame
-            jj_cpu = jj_cpu - min_frame
-            data = {"video":self.video.imagesdot[min_frame:max_frame+1,:,:,:][None]}
+            #if (max_frame - min_frame) <= 5:
+            #    min_frame = max_frame - 5
+            #ii_cpu = ii_cpu - min_frame
+            #jj_cpu = jj_cpu - min_frame
+            data = {"video":self.video.imagesdot[0:max_frame+1,:,:,:][None]}
             # self.init = self.point_tracker(data, mode= "tracks_at_motion_boundaries" )["tracks"]
             # for x in range(len(ii_cpu)):
             #     flow = self.Dot_Model(data, mode="get_flow_frame_to_frame", u=ii_cpu[x], v=jj_cpu[x], **vars(self.args))
@@ -174,6 +174,8 @@ class FactorGraph:
 
     def dot_predict_flow(self,data,ii,jj):
         video = data["video"]
+
+        video_size_adjustement = 4
         
         B, T, C, H, W = data["video"].shape
         tracks = []
@@ -184,9 +186,12 @@ class FactorGraph:
         init = self.point_tracker(data, mode= "tracks_at_motion_boundaries" )["tracks"]
         init = torch.stack([init[..., 0] / (W- 1), init[..., 1] / (H - 1), init[..., 2]], dim=-1)
 
-        grid = get_grid(H, W, device=video.device)
-        grid[..., 0] *= (W - 1)
-        grid[..., 1] *= (H - 1)
+        #Downscale the grid 
+        H_grid = int(H/video_size_adjustement)
+        W_grid = int(W/video_size_adjustement)
+        grid = get_grid(H_grid, W_grid, device=video.device)
+        grid[..., 0] *= (W_grid - 1)
+        grid[..., 1] *= (H_grid - 1)
         for x in range(len(ii)):
             sub_data = {
                 "src_frame": data["video"][:, ii[x]],
@@ -198,10 +203,24 @@ class FactorGraph:
             # pred["src_points"] = data["src_points"]
             # pred["tgt_points"] = data["tgt_points"]
             flow, alpha,coarse_flow = pred["flow"], pred["alpha"], pred["coarse_flow"]
-            tracks.append(flow + grid)
+            flow1 = flow[0,:,:,0]/video_size_adjustement
+            flow1 = flow1.unsqueeze(0).unsqueeze(0)
+            flow2 = flow[0,:,:,1]/video_size_adjustement
+            flow2 = flow2.unsqueeze(0).unsqueeze(0)
+            flow1 = F.interpolate(flow1, size=(H_grid,W_grid), mode='area')
+            flow1 = flow1.squeeze(0).squeeze(0)
+            flow2 = F.interpolate(flow2, size=(H_grid,W_grid), mode="area")
+            flow1 = flow1.squeeze(0).squeeze(0)
+            flow1 = flow1.view(H_grid, W_grid, 1)
+            flow2 = flow2.view(H_grid, W_grid, 1)
+            flow = torch.cat((flow1,flow2), dim=2)
+            flow = (flow + grid).unsqueeze(0)
+            tracks.append(flow)
             sparse_points.append(coarse_flow)
         tracks = torch.stack(tracks, dim=1)
-        tracks = tracks.view(1, len(ii), H, W, 2)
+        tracks = tracks.view(1, len(ii), H_grid, W_grid, 2)
+
+
         return tracks
     
     @torch.cuda.amp.autocast(enabled=True)
@@ -342,7 +361,7 @@ class FactorGraph:
 
 
             damping = .2 * self.damping[torch.unique(ii)].contiguous() + EP
-            #zerod = torch.ones(damping.shape, device=self.device)*0.001
+            zerod = torch.ones(damping.shape, device=self.device)*0.0001
 
             ht, wd = self.coords0.shape[0:2]
 
@@ -356,7 +375,7 @@ class FactorGraph:
             #fake_weight = torch.ones(weight.shape, device=self.device)/(ht*wd)
 
             # dense bundle adjustment
-            self.video.ba(target, weight, damping, ii, jj, t0, t1, 
+            self.video.ba(target, weight, zerod, ii, jj, t0, t1, 
                 itrs=itrs, lm=1e-4, ep=0.1, motion_only=motion_only)
             
             upmask = torch.ones((8, 1, 8*8*9,ht,wd), device=self.device)*0.0000001

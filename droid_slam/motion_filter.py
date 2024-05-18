@@ -60,7 +60,7 @@ class MotionFilter:
         gmap = self.__feature_encoder(inputs)
 
         imagedot = image[0] / 255
-        imagedot = F.interpolate(imagedot[None], size=(ht,wd), mode="bilinear")[0]
+        imagedot = F.interpolate(imagedot[None], size=(4*ht,4*wd), mode="bilinear")[0]
 
         self.mcount = self.mcount + 1
 
@@ -83,7 +83,7 @@ class MotionFilter:
 
             # check motion magnitue / add new frame to video
             #if delta.norm(dim=-1).mean().item() > self.thresh:
-            if self.count >= 4:
+            if self.count >= 2:
                 self.count = 0
                 net, inp = self.__context_encoder(inputs[:,[0]])
                 self.net, self.inp, self.fmap = net, inp, gmap

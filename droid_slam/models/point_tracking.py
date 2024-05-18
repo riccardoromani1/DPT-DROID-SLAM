@@ -39,7 +39,7 @@ class PointTracker(nn.Module):
         else:
             raise ValueError(f"Unknown mode {mode}")
 
-    def get_tracks_at_motion_boundaries(self, data, num_tracks=2400, sim_tracks=600, sample_mode="all", **kwargs):
+    def get_tracks_at_motion_boundaries(self, data, num_tracks=2400, sim_tracks=2400, sample_mode="all", **kwargs):
         video = data["video"]
         N, S = num_tracks, sim_tracks
         B, T, _, H, W = video.shape
@@ -79,10 +79,10 @@ class PointTracker(nn.Module):
                 if not src_step in motion_boundaries:
                     tgt_step = src_step - 1 if src_step > 0 else src_step + 1
                     data = {"src_frame": video[:, src_step], "tgt_frame": video[:, tgt_step]}
-                    pred = self.optical_flow_estimator(data, mode="harris_corner", **kwargs)
-                    motion_boundaries[src_step] = pred["corners"]
-                    #pred = self.optical_flow_estimator(data, mode="motion_boundaries", **kwargs)
-                    #motion_boundaries[src_step] = pred["motion_boundaries"]
+                    #pred = self.optical_flow_estimator(data, mode="harris_corner", **kwargs)
+                    #motion_boundaries[src_step] = pred["corners"]
+                    pred = self.optical_flow_estimator(data, mode="motion_boundaries", **kwargs)
+                    motion_boundaries[src_step] = pred["motion_boundaries"]
                 src_boundaries = motion_boundaries[src_step]
                 src_points.append(sample_points(src_step, src_boundaries, src_samples))
             src_points = torch.cat(src_points, dim=1)

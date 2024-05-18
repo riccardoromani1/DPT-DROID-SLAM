@@ -26,7 +26,7 @@ class OpticalFlow(nn.Module):
         if load_path is not None:
             device = next(self.model.parameters()).device
             self.model.load_state_dict(torch.load(load_path, map_location=device))
-        coarse_height, coarse_width = height // model_args.patch_size, width // model_args.patch_size
+        coarse_height, coarse_width = 4*height // model_args.patch_size, 4*width // model_args.patch_size
         self.register_buffer("coarse_grid", get_grid(coarse_height, coarse_width))
 
     def forward(self, data, mode, **kwargs):
@@ -144,7 +144,7 @@ class OpticalFlow(nn.Module):
 
 
 
-    def getcorners(self, data, k=0.04, threshold=0.01, **kwargs):
+    def getcorners(self, data, k=0.08, threshold=0.035, **kwargs):
         src_frame, tgt_frame = data["src_frame"], data["tgt_frame"]
         B, _, H, W = src_frame.shape
 
@@ -168,7 +168,7 @@ class OpticalFlow(nn.Module):
         R = self.get_harris_R(im, k)
         corners = self.get_harris_corners(im, R)
         
-        corner_mask = self.create_boolean_mask((40,60), corners)
+        corner_mask = self.create_boolean_mask((H,W), corners)
 
         R = torch.from_numpy(R)
         R = torch.unsqueeze(R, 0).to(device)

@@ -44,6 +44,8 @@ def image_stream(imagedir, calib, stride):
         h0, w0, _ = image.shape
         #h1 = int(h0 * np.sqrt((384 * 512) / (h0 * w0)))
         #w1 = int(w0 * np.sqrt((384 * 512) / (h0 * w0)))
+        #w1 = 576
+        #h1 = 416
         w1 = 480
         h1 = 320
         image = cv2.resize(image, (w1, h1))
@@ -109,8 +111,10 @@ if __name__ == '__main__':
     parser.add_argument("--model", type=str, default="dot", choices=["dot", "of", "pt"])
     parser.add_argument("--datetime", type=str, default=None)
     parser.add_argument("--data_root", type=str)
-    parser.add_argument("--height", type=int, default=40)
-    parser.add_argument("--width", type=int, default=60)
+    parser.add_argument("--height", type=int, default=160)
+    parser.add_argument("--width", type=int, default=240)
+    #parser.add_argument("--height", type=int, default=52)
+    #parser.add_argument("--width", type=int, default=72)
     parser.add_argument("--aspect_ratio", type=float, default=1)
     parser.add_argument("--batch_size", type=int)
     parser.add_argument("--num_tracks", type=int, default=1200)
