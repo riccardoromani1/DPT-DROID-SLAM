@@ -3,6 +3,8 @@ from torch import nn
 import torch.nn.functional as F
 from tqdm import tqdm
 import math
+import numpy as np
+import cv2
 
 from .shelf import RAFT
 from .interpolation import interpolate
@@ -67,12 +69,80 @@ class OpticalFlow(nn.Module):
         boundaries = boundaries > boundaries_thresh
         return {"motion_boundaries": boundaries, "flow": flow}
     
-    def get_sobel_kernels(self):
-        kernel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=torch.float32)
-        kernel_y = torch.tensor([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], dtype=torch.float32)
-        return kernel_x.unsqueeze(0).unsqueeze(0), kernel_y.unsqueeze(0).unsqueeze(0)
 
+    def create_boolean_mask(self, image_shape, coordinates):
+        """
+        Create a boolean mask of given image shape with True at specified coordinates.
+
+        Parameters:
+        image_shape (tuple): Shape of the image (height, width).
+        coordinates (numpy.ndarray): Array of (x, y) coordinates.
+
+        Returns:
+        numpy.ndarray: Boolean mask of shape (height, width).
+        """
+        height, width = image_shape
+        mask = np.zeros((height, width), dtype=bool)
+
+        for coord in coordinates:
+            x,y = coord
+            x = round(x)
+            y = round(y)
+            if 0 <= y < height and 0 <= x < width:
+                mask[y, x] = True
+
+        return mask
+
+
+    def get_sobel_kernels(self):
+        kernel_x = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+        kernel_y = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
+        return kernel_x, kernel_y
     
+    def gaussian_filter(size, sigma):
+        x, y = np.mgrid[-size//2 + 1:size//2 + 1, -size//2 + 1:size//2 + 1]
+        g = np.exp(-((x**2 + y**2)/(2.0*sigma**2)))
+        return g/g.sum()
+    
+    def get_harris_R(self, img, k):
+        sobel_kernel_x, sobel_kernel_y = self.get_sobel_kernels()
+        # Compute gradients using Sobel operator
+        grad_x = cv2.filter2D(img, ddepth=-1, kernel=sobel_kernel_x)
+        grad_y = cv2.filter2D(img, ddepth=-1, kernel=sobel_kernel_y)
+        #grad_y = signal.convolve2d(img, sobel_kernel_y, boundary="fill", mode="same")
+
+        # Compute products of derivatives
+        Ixx = grad_x * grad_x
+        Iyy = grad_y * grad_y
+        Ixy = grad_x * grad_y
+
+        # Apply Gaussian filter to the products of derivatives
+        kernel_size = 3
+        # Gaussian Kernel
+        G = np.array([
+        [1, 2, 1],
+        [2, 4, 2],
+        [1, 2, 1]])/16
+        sigma = 1
+        Ixx = cv2.filter2D(Ixx, ddepth=-1, kernel=G)
+        Iyy = cv2.filter2D(Iyy, ddepth=-1, kernel=G)
+        Ixy = cv2.filter2D(Ixy, ddepth=-1, kernel=G)
+
+        # Compute the Harris response
+        det_M = Ixx * Iyy - Ixy * Ixy
+        trace_M = Ixx + Iyy
+        harris_response = det_M - k * (trace_M * trace_M)
+        return harris_response
+
+    def get_harris_corners(self, image, R):
+
+        # find centroids
+        ret, labels, stats, centroids = cv2.connectedComponentsWithStats(np.uint8(R > 1e-2))
+        # define the criteria to stop and refine the corners
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
+        return cv2.cornerSubPix(image, np.float32(centroids), (9,9), (-1,-1), criteria)
+
+
 
     def getcorners(self, data, k=0.04, threshold=0.01, **kwargs):
         src_frame, tgt_frame = data["src_frame"], data["tgt_frame"]
@@ -85,69 +155,29 @@ class OpticalFlow(nn.Module):
         else:
             src_gray = src_frame
             tgt_gray = tgt_frame
-
-        # Add channel dimension to grayscale images
-        src_gray = src_gray.unsqueeze(1)  # Shape: (B, 1, H, W)
-
-        # Get Sobel kernels
-        sobel_kernel_x, sobel_kernel_y = self.get_sobel_kernels()
         device = src_frame.device
-        sobel_kernel_x = sobel_kernel_x.to(device)
-        sobel_kernel_y = sobel_kernel_y.to(device)
+        #convert to np.float32
+        im = src_gray.detach().cpu().numpy()
+        im = np.squeeze(im, 0)
+        im = im.astype(np.float32)
 
-        # Compute gradients using Sobel operator
-        grad_x = F.conv2d(src_gray, sobel_kernel_x, padding=1)
-        grad_y = F.conv2d(src_gray, sobel_kernel_y, padding=1)
-
-        # Compute products of derivatives
-        Ixx = grad_x *2
-        Iyy = grad_y *2
-        Ixy = grad_x * grad_y
-
-        # Apply Gaussian filter to the products of derivatives
-        kernel_size = 3
-        sigma = 1
-        Ixx = self.apply_gaussian_blur(Ixx, kernel_size=kernel_size, sigma=sigma)
-        Iyy = self.apply_gaussian_blur(Iyy, kernel_size=kernel_size, sigma=sigma)
-        Ixy = self.apply_gaussian_blur(Ixy, kernel_size=kernel_size, sigma=sigma)
-
-        # Compute the Harris response
-        det_M = Ixx * Iyy - Ixy *2
-        trace_M = Ixx + Iyy
-        harris_response = det_M - k * (trace_M *2)
-
-        # Threshold the Harris response to detect corners
-        harris_threshold = threshold * harris_response.max()
-        corners = harris_response > harris_threshold
-        corners = corners.squeeze(0)
-
-        return {"corners": corners, "harris_response": harris_response}
+        #normalize 
+        im /= im.max()
 
 
-    def get_gaussian_kernel(self, kernel_size=3, sigma=1.0):
-        # Create a 1D Gaussian kernel
-        def gauss(x, sigma):
-            return (1.0 / (sigma * math.sqrt(2.0 * math.pi))) * torch.exp(-0.5 * (x / sigma) ** 2)
+        R = self.get_harris_R(im, k)
+        corners = self.get_harris_corners(im, R)
+        
+        corner_mask = self.create_boolean_mask((40,60), corners)
 
-        # Create range
-        kernel_range = torch.arange(-(kernel_size // 2), kernel_size // 2 + 1, dtype=torch.float32)
-        # Apply Gaussian formula
-        kernel_1d = gauss(kernel_range, sigma)
-        kernel_1d /= kernel_1d.sum()  # Normalize
+        R = torch.from_numpy(R)
+        R = torch.unsqueeze(R, 0).to(device)
+        corner_mask = torch.from_numpy(corner_mask)
+        corner_mask = torch.unsqueeze(corner_mask, 0).to(device)
+        return {"corners": corner_mask, "harris_response": R}
 
-        # Create 2D Gaussian kernel by outer product
-        kernel_2d = torch.outer(kernel_1d, kernel_1d)
-        kernel_2d = kernel_2d.unsqueeze(0).unsqueeze(0)  # Shape: (1, 1, kernel_size, kernel_size)
 
-        return kernel_2d
-
-    def apply_gaussian_blur(self, input, kernel_size=3, sigma=1.0):
-        B, C, H, W = input.shape
-        gaussian_kernel = self.get_gaussian_kernel(kernel_size, sigma).to(input.device)
-
-        # Apply the Gaussian kernel to each channel
-        blurred = F.conv2d(input, gaussian_kernel, padding=kernel_size // 2, groups=C)
-        return blurred
+   
 
     def get_flow_with_tracks_init(self, data, is_train=False, interpolation_version="torch3d", alpha_thresh=0.8, **kwargs):
         coarse_flow, coarse_alpha = interpolate(data["src_points"], data["tgt_points"], self.coarse_grid,
