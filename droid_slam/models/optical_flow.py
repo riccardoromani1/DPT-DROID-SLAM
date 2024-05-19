@@ -144,7 +144,7 @@ class OpticalFlow(nn.Module):
 
 
 
-    def getcorners(self, data, k=0.08, threshold=0.035, **kwargs):
+    def getcorners(self, data, k=0.08, threshold=0.025, **kwargs):
         src_frame, tgt_frame = data["src_frame"], data["tgt_frame"]
         B, _, H, W = src_frame.shape
 

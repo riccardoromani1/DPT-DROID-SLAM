@@ -143,13 +143,14 @@ class FactorGraph:
             jj_cpu = jj.cpu().numpy()
             min_frame = min(np.min(ii_cpu),np.min(jj_cpu))
             max_frame = max(np.max(ii_cpu),np.max(jj_cpu))
-            flow_dot_list = []
 
             # We need at least 5 frames for dot
             #if (max_frame - min_frame) <= 5:
             #    min_frame = max_frame - 5
-            #ii_cpu = ii_cpu - min_frame
-            #jj_cpu = jj_cpu - min_frame
+            #    ii_cpu = ii_cpu - min_frame
+            #    jj_cpu = jj_cpu - min_frame
+
+            #data = {"video":self.video.imagesdot[min_frame:max_frame+1,:,:,:][None]}
             data = {"video":self.video.imagesdot[0:max_frame+1,:,:,:][None]}
             # self.init = self.point_tracker(data, mode= "tracks_at_motion_boundaries" )["tracks"]
             # for x in range(len(ii_cpu)):
@@ -207,9 +208,9 @@ class FactorGraph:
             flow1 = flow1.unsqueeze(0).unsqueeze(0)
             flow2 = flow[0,:,:,1]/video_size_adjustement
             flow2 = flow2.unsqueeze(0).unsqueeze(0)
-            flow1 = F.interpolate(flow1, size=(H_grid,W_grid), mode='area')
+            flow1 = F.interpolate(flow1, size=(H_grid,W_grid), mode='bilinear')
             flow1 = flow1.squeeze(0).squeeze(0)
-            flow2 = F.interpolate(flow2, size=(H_grid,W_grid), mode="area")
+            flow2 = F.interpolate(flow2, size=(H_grid,W_grid), mode="bilinear")
             flow1 = flow1.squeeze(0).squeeze(0)
             flow1 = flow1.view(H_grid, W_grid, 1)
             flow2 = flow2.view(H_grid, W_grid, 1)
@@ -322,28 +323,25 @@ class FactorGraph:
     def update(self, t0=None, t1=None, itrs=2, use_inactive=False, EP=1e-7, motion_only=False, old_version=False):
         """ run update operator on factor graph """
 
-        # # motion features
-        with torch.cuda.amp.autocast(enabled=False):
-            coords1, mask = self.video.reproject(self.ii, self.jj)
-            motn = torch.cat([coords1 - self.coords0, self.target - coords1], dim=-1)
-            motn = motn.permute(0,1,4,2,3).clamp(-64.0, 64.0)
-        
-         # correlation features
-        corr = self.corr(coords1)
-
-        self.net, delta, weight, damping, upmask = \
-            self.update_op(self.net, self.inp, corr, motn, self.ii, self.jj)
-
 
         if t0 is None:
             t0 = max(1, self.ii.min().item()+1)
 
         with torch.cuda.amp.autocast(enabled=False):
             if old_version == True:
-            #self.target = predict_dot
-            
-                self.target = coords1 + delta.to(dtype=torch.float)
+                        # # motion features
+                with torch.cuda.amp.autocast(enabled=False):
+                    coords1, mask = self.video.reproject(self.ii, self.jj)
+                    motn = torch.cat([coords1 - self.coords0, self.target - coords1], dim=-1)
+                    motn = motn.permute(0,1,4,2,3).clamp(-64.0, 64.0)
+        
+                # correlation features
+                corr = self.corr(coords1)
 
+                self.net, delta, weight, damping, upmask = \
+                    self.update_op(self.net, self.inp, corr, motn, self.ii, self.jj)
+                #self.target = predict_dot            
+                self.target = coords1 + delta.to(dtype=torch.float)
                 self.weight = weight.to(dtype=torch.float)
             else:
                 #self.damping[torch.unique(self.ii)] = damping
@@ -361,7 +359,7 @@ class FactorGraph:
 
 
             damping = .2 * self.damping[torch.unique(ii)].contiguous() + EP
-            zerod = torch.ones(damping.shape, device=self.device)*0.0001
+            #zerod = torch.ones(damping.shape, device=self.device)*0.0000003
 
             ht, wd = self.coords0.shape[0:2]
 
@@ -375,7 +373,7 @@ class FactorGraph:
             #fake_weight = torch.ones(weight.shape, device=self.device)/(ht*wd)
 
             # dense bundle adjustment
-            self.video.ba(target, weight, zerod, ii, jj, t0, t1, 
+            self.video.ba(target, weight, damping, ii, jj, t0, t1, 
                 itrs=itrs, lm=1e-4, ep=0.1, motion_only=motion_only)
             
             upmask = torch.ones((8, 1, 8*8*9,ht,wd), device=self.device)*0.0000001

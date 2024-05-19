@@ -20,9 +20,9 @@ class DepthVideo:
 
         ### state attributes ###
         self.tstamp = torch.zeros(buffer, device="cuda", dtype=torch.float).share_memory_()
-        self.images = torch.zeros(buffer, 3, ht, wd, device="cuda", dtype=torch.uint8)
-        self.imagesdot = torch.zeros(buffer, 3, ht//2, wd//2, device="cuda", dtype=torch.float)
-        #self.imagesdot = torch.zeros(buffer, 3, ht, wd, device="cuda", dtype=torch.float)
+        self.images = torch.zeros(buffer, 3, ht, wd, device="cuda", dtype=torch.uint8).share_memory_()
+        #self.imagesdot = torch.zeros(buffer, 3, int(3*ht/4), int(3*wd/4), device="cuda", dtype=torch.float)
+        self.imagesdot = torch.zeros(buffer, 3, ht//2, wd//2, device="cuda", dtype=torch.float).share_memory_()
         self.dirty = torch.zeros(buffer, device="cuda", dtype=torch.bool).share_memory_()
         self.red = torch.zeros(buffer, device="cuda", dtype=torch.bool).share_memory_()
         self.poses = torch.zeros(buffer, 7, device="cuda", dtype=torch.float).share_memory_()

@@ -47,7 +47,7 @@ class DroidFrontend:
         self.video.disps[self.t1-1] = torch.where(self.video.disps_sens[self.t1-1] > 0, 
            self.video.disps_sens[self.t1-1], self.video.disps[self.t1-1])
 
-        for itr in range(self.iters1):
+        for itr in range(1):
             self.graph.update(None, None, use_inactive=True, old_version=False)
 
         # set initial pose for next frame
@@ -62,7 +62,7 @@ class DroidFrontend:
                 self.t1 -= 1
 
         else:
-            for itr in range(self.iters2):
+            for itr in range(1):
                 self.graph.update(None, None, use_inactive=True, old_version=False)
 
         # set pose for next itration

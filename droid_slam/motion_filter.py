@@ -70,20 +70,19 @@ class MotionFilter:
             net, inp = self.__context_encoder(inputs[:,[0]])
             self.net, self.inp, self.fmap = net, inp, gmap
             self.video.append(tstamp, image[0], Id, 1.0, depth, intrinsics / 8.0, gmap, net[0,0], inp[0,0], imagedot)
-            #self.video.append(tstamp, image[0], Id, 1.0, depth, intrinsics / 8.0, gmap, net[0,0], inp[0,0], image[0])
 
         ### only add new frame if there is enough motion ###
         else:                
             # index correlation volume
-            coords0 = pops.coords_grid(ht, wd, device=self.device)[None,None]
-            corr = CorrBlock(self.fmap[None,[0]], gmap[None,[0]])(coords0)
+            #coords0 = pops.coords_grid(ht, wd, device=self.device)[None,None]
+            #corr = CorrBlock(self.fmap[None,[0]], gmap[None,[0]])(coords0)
 
             # approximate flow magnitude using 1 update iteration
             #_, delta, weight = self.update(self.net[None], self.inp[None], corr)
 
             # check motion magnitue / add new frame to video
             #if delta.norm(dim=-1).mean().item() > self.thresh:
-            if self.count >= 2:
+            if self.count >= 3:
                 self.count = 0
                 net, inp = self.__context_encoder(inputs[:,[0]])
                 self.net, self.inp, self.fmap = net, inp, gmap
