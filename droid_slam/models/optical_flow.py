@@ -142,19 +142,15 @@ class OpticalFlow(nn.Module):
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.001)
         return cv2.cornerSubPix(image, np.float32(centroids), (9,9), (-1,-1), criteria)
 
-
-
-    def getcorners(self, data, k=0.08, threshold=0.025, **kwargs):
+    def getcorners(self, data, k=0.08, threshold=0.035, **kwargs):
         src_frame, tgt_frame = data["src_frame"], data["tgt_frame"]
         B, _, H, W = src_frame.shape
 
         # Convert to grayscale if necessary (assuming input is RGB)
         if src_frame.shape[1] == 3:
             src_gray = 0.299 * src_frame[:, 0] + 0.587 * src_frame[:, 1] + 0.114 * src_frame[:, 2]
-            tgt_gray = 0.299 * tgt_frame[:, 0] + 0.587 * tgt_frame[:, 1] + 0.114 * tgt_frame[:, 2]
         else:
             src_gray = src_frame
-            tgt_gray = tgt_frame
         device = src_frame.device
         #convert to np.float32
         im = src_gray.detach().cpu().numpy()
@@ -175,10 +171,7 @@ class OpticalFlow(nn.Module):
         corner_mask = torch.from_numpy(corner_mask)
         corner_mask = torch.unsqueeze(corner_mask, 0).to(device)
         return {"corners": corner_mask, "harris_response": R}
-
-
-   
-
+ 
     def get_flow_with_tracks_init(self, data, is_train=False, interpolation_version="torch3d", alpha_thresh=0.8, **kwargs):
         coarse_flow, coarse_alpha = interpolate(data["src_points"], data["tgt_points"], self.coarse_grid,
                                                 version=interpolation_version)

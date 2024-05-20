@@ -28,10 +28,10 @@ class Droid:
         self.filterx = MotionFilter(self.net, self.video, thresh=args.filter_thresh)
 
         # frontend process
-        self.frontend = DroidFrontend(self.net, self.video, self.args)
+        self.frontend = DroidFrontend(self.video, self.args)
         
         # backend process
-        self.backend = DroidBackend(self.net, self.video, self.args)
+        #self.backend = DroidBackend(self.net, self.video, self.args)
 
         # visualizer
         if not self.disable_vis:
@@ -40,7 +40,7 @@ class Droid:
             self.visualizer.start()
 
         # post processor - fill in poses for non-keyframes
-        self.traj_filler = PoseTrajectoryFiller(self.net, self.video)
+        self.traj_filler = PoseTrajectoryFiller(self.video,self.net, self.args)
 
 
     def load_weights(self, weights):
@@ -77,13 +77,15 @@ class Droid:
 
         del self.frontend
 
-        torch.cuda.empty_cache()
-        print("#" * 32)
-        self.backend(7)
+        #The backend is not needed anymore
 
-        torch.cuda.empty_cache()
-        print("#" * 32)
-        self.backend(12)
+        #torch.cuda.empty_cache()
+        #print("#" * 32)
+        #self.backend(7)
+
+        #torch.cuda.empty_cache()
+        #print("#" * 32)
+        #self.backend(12)
 
         camera_trajectory = self.traj_filler(stream)
         return camera_trajectory.inv().data.cpu().numpy()

@@ -14,14 +14,12 @@ from utils.torch import get_grid
 
 
 class FactorGraph:
-    def __init__(self, video, update_op, args, device="cuda:0", corr_impl="volume", max_factors=-1, upsample=False):
+    def __init__(self, video, args, device="cuda:0", corr_impl="volume", max_factors=-1, upsample=False):
         self.video = video
-        self.update_op = update_op
         self.device = device
         self.max_factors = max_factors
         self.corr_impl = corr_impl
         self.upsample = upsample
-        #breakpoint()
 
         self.args = args
         
@@ -42,7 +40,6 @@ class FactorGraph:
         self.corr, self.net, self.inp = None, None, None
         self.damping = 1e-6 * torch.ones_like(self.video.disps)
 
-        self.flow_dot = torch.zeros([1, 0, ht, wd, 2], device=device, dtype=torch.float)
         self.coarse_flow = torch.zeros([1, 0, ht//4, wd//4, 2], device=device, dtype=torch.float)
         self.target = torch.zeros([1, 0, ht, wd, 2], device=device, dtype=torch.float)
         self.weight = torch.zeros([1, 0, ht, wd, 2], device=device, dtype=torch.float)
@@ -145,21 +142,15 @@ class FactorGraph:
             max_frame = max(np.max(ii_cpu),np.max(jj_cpu))
 
             # We need at least 5 frames for dot
-            #if (max_frame - min_frame) <= 5:
-            #    min_frame = max_frame - 5
-            #    ii_cpu = ii_cpu - min_frame
-            #    jj_cpu = jj_cpu - min_frame
+            if (max_frame - min_frame) <= 5:
+                min_frame = max_frame - 5
+                
+            ii_cpu = ii_cpu - min_frame
+            jj_cpu = jj_cpu - min_frame
 
-            #data = {"video":self.video.imagesdot[min_frame:max_frame+1,:,:,:][None]}
-            data = {"video":self.video.imagesdot[0:max_frame+1,:,:,:][None]}
-            # self.init = self.point_tracker(data, mode= "tracks_at_motion_boundaries" )["tracks"]
-            # for x in range(len(ii_cpu)):
-            #     flow = self.Dot_Model(data, mode="get_flow_frame_to_frame", u=ii_cpu[x], v=jj_cpu[x], **vars(self.args))
-            #     flow_dot_list.append(flow)
-            # flow_dot = torch.stack(flow_dot_list, dim=1)
+            data = {"video":self.video.imagesdot[min_frame:max_frame+1,:,:,:][None]}
             target = self.dot_predict_flow(data,ii_cpu,jj_cpu)
-            
-            #target, _ = self.video.reproject(ii, jj)
+
             weight = torch.zeros_like(target)
 
         self.ii = torch.cat([self.ii, ii], 0)
@@ -168,12 +159,11 @@ class FactorGraph:
 
         # reprojection factors
         self.net = net if self.net is None else torch.cat([self.net, net], 1)
-        #self.flow_dot = torch.cat([self.flow_dot, flow_dot], 1)
         self.target = torch.cat([self.target, target], 1)
-        #self.target = torch.cat([self.target, target], 1)
         self.weight = torch.cat([self.weight, weight], 1)
 
     def dot_predict_flow(self,data,ii,jj):
+        "calculating the flow with DOT"
         video = data["video"]
 
         video_size_adjustement = 4
@@ -181,8 +171,6 @@ class FactorGraph:
         B, T, C, H, W = data["video"].shape
         tracks = []
         sparse_points = []
-
-        #flow = self.point_tracker(data, mode= "tracks_at_motion_boundaries" )
 
         init = self.point_tracker(data, mode= "tracks_at_motion_boundaries" )["tracks"]
         init = torch.stack([init[..., 0] / (W- 1), init[..., 1] / (H - 1), init[..., 2]], dim=-1)
@@ -193,6 +181,7 @@ class FactorGraph:
         grid = get_grid(H_grid, W_grid, device=video.device)
         grid[..., 0] *= (W_grid - 1)
         grid[..., 1] *= (H_grid - 1)
+
         for x in range(len(ii)):
             sub_data = {
                 "src_frame": data["video"][:, ii[x]],
@@ -201,9 +190,9 @@ class FactorGraph:
                 "tgt_points": init[:, jj[x]]
             }
             pred = self.optical_flow_refiner(sub_data, mode="flow_with_tracks_init")
-            # pred["src_points"] = data["src_points"]
-            # pred["tgt_points"] = data["tgt_points"]
             flow, alpha,coarse_flow = pred["flow"], pred["alpha"], pred["coarse_flow"]
+            
+            #Scaling the Flow to the desired Video//8 size
             flow1 = flow[0,:,:,0]/video_size_adjustement
             flow1 = flow1.unsqueeze(0).unsqueeze(0)
             flow2 = flow[0,:,:,1]/video_size_adjustement
@@ -215,7 +204,10 @@ class FactorGraph:
             flow1 = flow1.view(H_grid, W_grid, 1)
             flow2 = flow2.view(H_grid, W_grid, 1)
             flow = torch.cat((flow1,flow2), dim=2)
+
+            #Adding the grid
             flow = (flow + grid).unsqueeze(0)
+
             tracks.append(flow)
             sparse_points.append(coarse_flow)
         tracks = torch.stack(tracks, dim=1)
@@ -286,6 +278,7 @@ class FactorGraph:
         self.rm_factors(m, store=False)
 
     def local_variance(self,flow, kernel_size=3):
+        "calculating the local variance"
         flow_u = flow[:,:,0]
         flow_v = flow[:,:,1]
         gaussian_kernel = torch.ones((1, 1, kernel_size, kernel_size), dtype=torch.float32) / (kernel_size * kernel_size)
@@ -306,17 +299,16 @@ class FactorGraph:
         
     @torch.cuda.amp.autocast(enabled=True)
     def get_confidence_weights_and_damping(self):
+        "generating the confidence weights"
         num_frames = self.target.shape[1]
         ht, wd = self.target.shape[2:4]
         confidence_weights = []
-        damping_factors = []
         for frame in range(num_frames):
             target_frame = self.target[0, frame].to("cpu")
             frame_confidence = self.local_variance(target_frame)
             confidence_weights.append(frame_confidence)
         confidence_weights = torch.stack(confidence_weights).to(dtype=torch.float32).to(self.device).view(1, num_frames, ht, wd, 2)
         self.weight = confidence_weights.to(dtype=torch.float).to(self.device)
-  #      breakpoint()
         return
 
     @torch.cuda.amp.autocast(enabled=True)
@@ -328,24 +320,9 @@ class FactorGraph:
             t0 = max(1, self.ii.min().item()+1)
 
         with torch.cuda.amp.autocast(enabled=False):
-            if old_version == True:
-                        # # motion features
-                with torch.cuda.amp.autocast(enabled=False):
-                    coords1, mask = self.video.reproject(self.ii, self.jj)
-                    motn = torch.cat([coords1 - self.coords0, self.target - coords1], dim=-1)
-                    motn = motn.permute(0,1,4,2,3).clamp(-64.0, 64.0)
-        
-                # correlation features
-                corr = self.corr(coords1)
 
-                self.net, delta, weight, damping, upmask = \
-                    self.update_op(self.net, self.inp, corr, motn, self.ii, self.jj)
-                #self.target = predict_dot            
-                self.target = coords1 + delta.to(dtype=torch.float)
-                self.weight = weight.to(dtype=torch.float)
-            else:
-                #self.damping[torch.unique(self.ii)] = damping
-                self.get_confidence_weights_and_damping()
+            self.get_confidence_weights_and_damping()
+
             if use_inactive:
                 m = (self.ii_inac >= t0 - 3) & (self.jj_inac >= t0 - 3)
                 ii = torch.cat([self.ii_inac[m], self.ii], 0)
@@ -359,18 +336,10 @@ class FactorGraph:
 
 
             damping = .2 * self.damping[torch.unique(ii)].contiguous() + EP
-            #zerod = torch.ones(damping.shape, device=self.device)*0.0000003
-
             ht, wd = self.coords0.shape[0:2]
-
-       
-
-
             target = target.view(-1, ht, wd, 2).permute(0,3,1,2).contiguous()
             weight = weight.view(-1, ht, wd, 2).permute(0,3,1,2).contiguous()
-            #weight = torch.zeros(weight.shape, device=self.device)
 
-            #fake_weight = torch.ones(weight.shape, device=self.device)/(ht*wd)
 
             # dense bundle adjustment
             self.video.ba(target, weight, damping, ii, jj, t0, t1, 
@@ -384,57 +353,6 @@ class FactorGraph:
         self.age += 1
 
 
-    @torch.cuda.amp.autocast(enabled=False)
-    def update_lowmem(self, t0=None, t1=None, itrs=2, use_inactive=False, EP=1e-7, steps=8):
-        """ run update operator on factor graph - reduced memory implementation """
-
-        # alternate corr implementation
-        t = self.video.counter.value
-
-        num, rig, ch, ht, wd = self.video.fmaps.shape
-        corr_op = AltCorrBlock(self.video.fmaps.view(1, num*rig, ch, ht, wd))
-
-        for step in range(steps):
-            print("Global BA Iteration #{}".format(step+1))
-            with torch.cuda.amp.autocast(enabled=False):
-                coords1, mask = self.video.reproject(self.ii, self.jj)
-                motn = torch.cat([coords1 - self.coords0, self.target - coords1], dim=-1)
-                motn = motn.permute(0,1,4,2,3).clamp(-64.0, 64.0)
-
-            s = 8
-            for i in range(0, self.jj.max()+1, s):
-                v = (self.ii >= i) & (self.ii < i + s)
-                iis = self.ii[v]
-                jjs = self.jj[v]
-
-                ht, wd = self.coords0.shape[0:2]
-                corr1 = corr_op(coords1[:,v], rig * iis, rig * jjs + (iis == jjs).long())
-
-                with torch.cuda.amp.autocast(enabled=True):
-                 
-                    net, delta, weight, damping, upmask = \
-                        self.update_op(self.net[:,v], self.video.inps[None,iis], corr1, motn[:,v], iis, jjs)
-
-                    if self.upsample:
-                        self.video.upsample(torch.unique(iis), upmask)
-
-                self.net[:,v] = net
-                self.target[:,v] = coords1[:,v] + delta.float()
-                self.weight[:,v] = weight.float()
-                self.damping[torch.unique(iis)] = damping
-
-            
-
-            damping = .2 * self.damping[torch.unique(self.ii)].contiguous() + EP
-            zerod = torch.zeros(damping.shape)
-            target = self.target.view(-1, ht, wd, 2).permute(0,3,1,2).contiguous()
-            weight = self.weight.view(-1, ht, wd, 2).permute(0,3,1,2).contiguous()
-
-            # dense bundle adjustment
-            self.video.ba(target, weight, zerod, self.ii, self.jj, 1, t, 
-                itrs=itrs, lm=1e-5, ep=1e-2, motion_only=False)
-
-            self.video.dirty[:t] = True
 
     def add_neighborhood_factors(self, t0, t1, r=3):
         """ add edges between neighboring frames within radius r """
@@ -514,54 +432,3 @@ class FactorGraph:
 
         ii, jj = torch.as_tensor(es, device=self.device).unbind(dim=-1)
         self.add_factors(ii, jj, remove)
-
-    
-    def update_init(self, t0=None, t1=None, itrs=2, use_inactive=False, EP=1e-7, motion_only=False):
-        """ run update operator on factor graph """
-
-        # motion features
-        with torch.cuda.amp.autocast(enabled=False):
-            coords1, mask = self.video.reproject(self.ii, self.jj)
-            motn = torch.cat([coords1 - self.coords0, self.target - coords1], dim=-1)
-            motn = motn.permute(0,1,4,2,3).clamp(-64.0, 64.0)
-        
-        # correlation features
-        corr = self.corr(coords1)
-
-        self.net, delta, weight, damping, upmask = \
-            self.update_op(self.net, self.inp, corr, motn, self.ii, self.jj)
-
-        if t0 is None:
-            t0 = max(1, self.ii.min().item()+1)
-
-        with torch.cuda.amp.autocast(enabled=False):
-            self.target = coords1 + delta.to(dtype=torch.float)
-            self.weight = weight.to(dtype=torch.float)
-
-            ht, wd = self.coords0.shape[0:2]
-            self.damping[torch.unique(self.ii)] = damping
-
-            if use_inactive:
-                m = (self.ii_inac >= t0 - 3) & (self.jj_inac >= t0 - 3)
-                ii = torch.cat([self.ii_inac[m], self.ii], 0)
-                jj = torch.cat([self.jj_inac[m], self.jj], 0)
-                target = torch.cat([self.target_inac[:,m], self.target], 1)
-                weight = torch.cat([self.weight_inac[:,m], self.weight], 1)
-
-            else:
-                ii, jj, target, weight = self.ii, self.jj, self.target, self.weight
-
-
-            damping = .2 * self.damping[torch.unique(ii)].contiguous() + EP
-
-            target = target.view(-1, ht, wd, 2).permute(0,3,1,2).contiguous()
-            weight = weight.view(-1, ht, wd, 2).permute(0,3,1,2).contiguous()
-
-            # dense bundle adjustment
-            self.video.ba(target, weight, damping, ii, jj, t0, t1, 
-                itrs=itrs, lm=1e-4, ep=0.1, motion_only=motion_only)
-        
-            if self.upsample:
-                self.video.upsample(torch.unique(self.ii), upmask)
-
-        self.age += 1

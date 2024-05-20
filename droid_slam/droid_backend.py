@@ -20,7 +20,7 @@ class DroidBackend:
         self.backend_thresh = args.backend_thresh
         self.backend_radius = args.backend_radius
         self.backend_nms = args.backend_nms
-        
+        self.update_op, 
     @torch.no_grad()
     def __call__(self, steps=12):
         """ main update """

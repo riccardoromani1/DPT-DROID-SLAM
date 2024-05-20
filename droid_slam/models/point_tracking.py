@@ -34,12 +34,10 @@ class PointTracker(nn.Module):
     def forward(self, data, mode, **kwargs):
         if mode == "tracks_at_motion_boundaries":
             return self.get_tracks_at_motion_boundaries(data, **kwargs)
-        elif mode == "flow_from_last_to_first_frame":
-            return self.get_flow_from_last_to_first_frame(data, **kwargs)
         else:
             raise ValueError(f"Unknown mode {mode}")
 
-    def get_tracks_at_motion_boundaries(self, data, num_tracks=2400, sim_tracks=2400, sample_mode="all", **kwargs):
+    def get_tracks_at_motion_boundaries(self, data, num_tracks=800, sim_tracks=800, sample_mode="all", **kwargs):
         video = data["video"]
         N, S = num_tracks, sim_tracks
         B, T, _, H, W = video.shape
@@ -96,48 +94,7 @@ class PointTracker(nn.Module):
 
         return {"tracks": tracks}
     
-    def get_flow_from_last_to_first_frame(self, data, sim_tracks=2048, **kwargs):
-        video = data["video"]
-        #video = video.flip(dims=[1])
-        src_step = 0  # We have flipped video over temporal axis so src_step is 0
-        B, T, C, H, W = video.shape
-        S = sim_tracks
-        backward_tracking = False
-        cache_features = True
-        flow = get_grid(H, W, shape=[B]).cuda()
-        flow[..., 0] = flow[..., 0] * (W - 1)
-        flow[..., 1] = flow[..., 1] * (H - 1)
-        alpha = torch.zeros(B, H, W).cuda()
-        mask = torch.ones(H, W)
-        pbar = tqdm(total=H * W // S, desc="Track batch of points", leave=False)
-        while torch.any(mask):
-            points, (i, j) = sample_mask_points(src_step, mask, S)
-            idx = i * W + j
-            points = points.cuda()[None].expand(B, -1, -1)
-
-            traj, vis = self.model(video, points, backward_tracking, cache_features)
-            traj = traj[:, -1]
-            vis = vis[:, -1].float()
-
-            # Update mask
-            mask = mask.view(-1)
-            mask[idx] = 0
-            mask = mask.view(H, W)
-
-            # Update flow
-            flow = flow.view(B, -1, 2)
-            flow[:, idx] = traj - flow[:, idx]
-            flow = flow.view(B, H, W, 2)
-
-            # Update alpha
-            alpha = alpha.view(B, -1)
-            alpha[:, idx] = vis
-            alpha = alpha.view(B, H, W)
-
-            cache_features = False
-            pbar.update(1)
-        pbar.close()
-        return {"flow": flow, "alpha": alpha}
+ 
     
 
 

@@ -152,10 +152,6 @@ class DroidNet(nn.Module):
         self.cnet = BasicEncoder(output_dim=256, norm_fn='none')
         self.update = UpdateModule()
 
-    #def extract_features_dot(self, images):
-    #    """ run feature extraction network with dot"""
-    #
-    #    return fmaps, net, inp
 
     def extract_features(self, images):
         """ run feeature extraction networks """
