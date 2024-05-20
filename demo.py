@@ -19,8 +19,8 @@ import torch.nn.functional as F
 
 def show_image(image):
     image = image.permute(1, 2, 0).cpu().numpy()
-    cv2.imshow('image', image / 255.0)
-    cv2.waitKey(1)
+    #cv2.imshow('image', image / 255.0)
+    #cv2.waitKey(0)
 
 def image_stream(imagedir, calib, stride):
     """ image generator """
@@ -42,9 +42,12 @@ def image_stream(imagedir, calib, stride):
             image = cv2.undistort(image, K, calib[4:])
 
         h0, w0, _ = image.shape
-        h1 = int(h0 * np.sqrt((384 * 512) / (h0 * w0)))
-        w1 = int(w0 * np.sqrt((384 * 512) / (h0 * w0)))
-
+        #h1 = int(h0 * np.sqrt((384 * 512) / (h0 * w0)))
+        #w1 = int(w0 * np.sqrt((384 * 512) / (h0 * w0)))
+        #w1 = 576
+        #h1 = 416
+        w1 = 480
+        h1 = 320
         image = cv2.resize(image, (w1, h1))
         image = image[:h1-h1%8, :w1-w1%8]
         image = torch.as_tensor(image).permute(2, 0, 1)
@@ -103,6 +106,46 @@ if __name__ == '__main__':
     parser.add_argument("--backend_nms", type=int, default=3)
     parser.add_argument("--upsample", action="store_true")
     parser.add_argument("--reconstruction_path", help="path to saved reconstruction")
+
+    parser.add_argument("--name", type=str)
+    parser.add_argument("--model", type=str, default="dot", choices=["dot", "of", "pt"])
+    parser.add_argument("--datetime", type=str, default=None)
+    parser.add_argument("--data_root", type=str)
+    parser.add_argument("--height", type=int, default=160)
+    parser.add_argument("--width", type=int, default=240)
+    #parser.add_argument("--height", type=int, default=52)
+    #parser.add_argument("--width", type=int, default=72)
+    parser.add_argument("--aspect_ratio", type=float, default=1)
+    parser.add_argument("--batch_size", type=int)
+    parser.add_argument("--num_tracks", type=int, default=1200)
+    parser.add_argument("--sim_tracks", type=int, default=1200)
+    parser.add_argument("--alpha_thresh", type=float, default=0.8)
+        #parser.add_argument("--is_train", type=str2bool, nargs='?', const=True, default=False)
+
+        # Parallelization
+    parser.add_argument('--worker_idx', type=int, default=0)
+    parser.add_argument("--num_workers", type=int, default=2)
+
+        # Optical flow estimator
+    parser.add_argument("--estimator_config", type=str, default="configs/raft_patch_8.json")
+    parser.add_argument("--estimator_path", type=str, default="checkpoints/cvo_raft_patch_8.pth")
+    parser.add_argument("--flow_mode", type=str, default="direct", choices=["direct", "chain", "warm_start"])
+
+        # Optical flow refiner
+    parser.add_argument("--refiner_config", type=str, default="configs/raft_patch_4_alpha.json")
+    parser.add_argument("--refiner_path", type=str, default="checkpoints/movi_f_raft_patch_4_alpha.pth")
+
+        # Point tracker
+    parser.add_argument("--tracker_config", type=str, default="configs/cotracker2_patch_4_wind_8.json")
+    parser.add_argument("--tracker_path", type=str, default="checkpoints/movi_f_cotracker2_patch_4_wind_8.pth")
+    parser.add_argument("--sample_mode", type=str, default="all", choices=["all", "first", "last"])
+
+        # Dense optical tracker
+    parser.add_argument("--cell_size", type=int, default=1)
+    parser.add_argument("--cell_time_steps", type=int, default=20)
+
+        # Interpolation
+    parser.add_argument("--interpolation_version", type=str, default="torch3d", choices=["torch3d", "torch"])
     args = parser.parse_args()
 
     args.stereo = False

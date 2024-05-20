@@ -10,7 +10,7 @@ from droid_net import cvx_upsample
 import geom.projective_ops as pops
 
 class DepthVideo:
-    def __init__(self, image_size=[480, 640], buffer=1024, stereo=False, device="cuda:0"):
+    def __init__(self, image_size=[320, 480], buffer=1024, stereo=False, device="cuda:0"):
                 
         # current keyframe count
         self.counter = Value('i', 0)
@@ -20,7 +20,9 @@ class DepthVideo:
 
         ### state attributes ###
         self.tstamp = torch.zeros(buffer, device="cuda", dtype=torch.float).share_memory_()
-        self.images = torch.zeros(buffer, 3, ht, wd, device="cuda", dtype=torch.uint8)
+        self.images = torch.zeros(buffer, 3, ht, wd, device="cuda", dtype=torch.uint8).share_memory_()
+        #self.imagesdot = torch.zeros(buffer, 3, int(3*ht/4), int(3*wd/4), device="cuda", dtype=torch.float)
+        self.imagesdot = torch.zeros(buffer, 3, ht//2, wd//2, device="cuda", dtype=torch.float).share_memory_()
         self.dirty = torch.zeros(buffer, device="cuda", dtype=torch.bool).share_memory_()
         self.red = torch.zeros(buffer, device="cuda", dtype=torch.bool).share_memory_()
         self.poses = torch.zeros(buffer, 7, device="cuda", dtype=torch.float).share_memory_()
@@ -75,6 +77,9 @@ class DepthVideo:
 
         if len(item) > 8:
             self.inps[index] = item[8]
+
+        if len(item) > 9:
+            self.imagesdot[index] = item[9]
 
     def __setitem__(self, index, item):
         with self.get_lock():

@@ -58,6 +58,7 @@ class GraphAgg(nn.Module):
 
     def forward(self, net, ii):
         batch, num, ch, ht, wd = net.shape
+        #breakpoint()
         net = net.view(batch*num, ch, ht, wd)
 
         _, ix = torch.unique(ii, return_inverse=True)
@@ -110,6 +111,7 @@ class UpdateModule(nn.Module):
 
     def forward(self, net, inp, corr, flow=None, ii=None, jj=None):
         """ RaftSLAM update operator """
+        # here has do be made adaptations
 
         batch, num, ch, ht, wd = net.shape
 
