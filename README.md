@@ -1,5 +1,7 @@
 # DOT-SLAM: DROID-SLAM Optimization Using DOT
 
+The goal of this project is to integrate Dense Optical Tracking (DOT) into DROID-SLAM. 
+
 
 <!-- <center><img src="misc/DROID.png" width="640" style="center"></center> -->
 
