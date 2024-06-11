@@ -2,27 +2,12 @@
 
 The goal of this project is to integrate Dense Optical Tracking (DOT) into DROID-SLAM. 
 
-
-<!-- <center><img src="misc/DROID.png" width="640" style="center"></center> -->
-
-
-[![IMAGE ALT TEXT HERE](misc/screenshot.png)](https://www.youtube.com/watch?v=GG78CSlSHSA)
-
-
-
-[DROID-SLAM: Deep Visual SLAM for Monocular, Stereo, and RGB-D Cameras](https://arxiv.org/abs/2108.10869)  
+The gitpages for DROIDSLAM: 
+[DROID-SLAM: Deep Visual SLAM for Monocular, Stereo, and RGB-D Cameras](https://arxiv.org/abs/2108.10869](https://github.com/princeton-vl/DROID-SLAM))  
 Zachary Teed and Jia Deng
 
-```
-@article{teed2021droid,
-  title={{DROID-SLAM: Deep Visual SLAM for Monocular, Stereo, and RGB-D Cameras}},
-  author={Teed, Zachary and Deng, Jia},
-  journal={Advances in neural information processing systems},
-  year={2021}
-}
-```
-
-**Initial Code Release:** This repo currently provides a single GPU implementation of our monocular, stereo, and RGB-D SLAM systems. It currently contains demos, training, and evaluation scripts. 
+[Dense Optical Tracking: Connecting the Dots](https://github.com/16lemoing/dot)
+Guillaume Le Moing, Jean Ponce, Cordelia Schmid
 
 
 ## Requirements
@@ -30,12 +15,10 @@ Zachary Teed and Jia Deng
 To run the code you will need ...
 * **Inference:** Running the demos will require a GPU with at least 11G of memory. 
 
-* **Training:** Training requires a GPU with at least 24G of memory. We train on 4 x RTX-3090 GPUs.
-
 ## Getting Started
 1. Clone the repo using the `--recursive` flag
 ```Bash
-git clone --recursive https://github.com/princeton-vl/DROID-SLAM.git
+git clone --recursive https://github.com/holuca/DPT-DROID-SLAM.git
 ```
 
 2. Creating a new anaconda environment using the provided .yaml file. Use `environment_novis.yaml` to if you do not want to use the visualization
@@ -119,22 +102,6 @@ Download the [ETH3D](https://www.eth3d.net/slam_datasets) dataset
 ./tools/evaluate_eth3d.sh                             # RGB-D eval
 ```
 
-## Training
-
-First download the TartanAir dataset. The download script can be found in `thirdparty/tartanair_tools/download_training.py`. You will only need the `rgb` and `depth` data.
-
-```
-python download_training.py --rgb --depth
-```
-
-You can then run the training script. We use 4x3090 RTX GPUs for training which takes approximatly 1 week. If you use a different number of GPUs, adjust the learning rate accordingly.
-
-**Note:** On the first training run, covisibility is computed between all pairs of frames. This can take several hours, but the results are cached so that future training runs will start immediately. 
-
-
-```
-python train.py --datapath=<path to tartanair> --gpus=4 --lr=0.00025
-```
 
 
 ## Acknowledgements
