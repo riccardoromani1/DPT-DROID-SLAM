@@ -1,4 +1,4 @@
-# DROID-SLAM
+# DOT-SLAM: DROID-SLAM Optimization Using DOT
 
 
 <!-- <center><img src="misc/DROID.png" width="640" style="center"></center> -->
