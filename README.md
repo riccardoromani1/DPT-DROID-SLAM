@@ -1,13 +1,10 @@
 # DOT-SLAM: DROID-SLAM Optimization Using DOT
 
-The goal of this project is to integrate Dense Optical Tracking (DOT) into DROID-SLAM. 
+In this project [Dense Optical Tracking (DOT)](https://github.com/16lemoing/dot) by Guillaume Le Moing, Jean Ponce, Cordelia Schmid has been integrated into [DROID-SLAM](https://arxiv.org/abs/2108.10869](https://github.com/princeton-vl/DROID-SLAM)) by Zachary Teed and Jia Deng.
+The goal of this was to overcome one of the major bottlenecks of DROID-SLAM which is int the update function using a ConvGRU to get the camera positions and depth map of the current frame. DOT is a framework unifying point tracking adn optical flow techniques to these restults without the need to refine the output for each frame as DROID does at the moment. 
 
-The gitpages for DROIDSLAM: 
-[DROID-SLAM: Deep Visual SLAM for Monocular, Stereo, and RGB-D Cameras](https://arxiv.org/abs/2108.10869](https://github.com/princeton-vl/DROID-SLAM))  
-Zachary Teed and Jia Deng
+We achieved similar results as DROID-SLAM by integrating DOT
 
-[Dense Optical Tracking: Connecting the Dots](https://github.com/16lemoing/dot)
-Guillaume Le Moing, Jean Ponce, Cordelia Schmid
 
 
 ## Requirements
