@@ -102,6 +102,94 @@ Download the [ETH3D](https://www.eth3d.net/slam_datasets) dataset
 ./tools/evaluate_eth3d.sh                             # RGB-D eval
 ```
 
+</details>
+## Model Zoo
+
+### Optical flow estimation
+&rarr; *find motion boundaries*
+
+<table>
+  <tr>
+    <th colspan="1">Model</th>
+    <th colspan="1">Data</th>
+    <th colspan="2">Download</th>
+  </tr>
+  <tr>
+    <td>RAFT</td>
+    <td>Kubric-CVO</td>
+    <td><a href="https://huggingface.co/16lemoing/dot/resolve/main/cvo_raft_patch_8.pth">Checkpoint</a></td>
+    <td><a href="https://github.com/16lemoing/dot/blob/main/configs/raft_patch_8.json">Config</a></td>
+  </tr>
+</table>
+
+### Point tracking initialization
+&rarr; *track sparse queries, half at motion boundaries, half randomly*
+
+<table>
+  <tr>
+    <th colspan="1">Model</th>
+    <th colspan="1">Data</th>
+    <th colspan="2">Download</th>
+  </tr>
+  <tr>
+    <td>CoTracker</td>
+    <td>Kubric-MOViF</td>
+    <td><a href="https://huggingface.co/16lemoing/dot/resolve/main/movi_f_cotracker_patch_4_wind_8.pth">Checkpoint</a></td>
+    <td><a href="https://github.com/16lemoing/dot/blob/main/configs/cotracker_patch_4_wind_8.json">Config</a></td>
+  </tr>
+  <tr>
+    <td>CoTracker2</td>
+    <td>Kubric-MOViF</td>
+    <td><a href="https://huggingface.co/16lemoing/dot/resolve/main/movi_f_cotracker2_patch_4_wind_8.pth">Checkpoint</a></td>
+    <td><a href="https://github.com/16lemoing/dot/blob/main/configs/cotracker2_patch_4_wind_8.json">Config</a></td>
+  </tr>
+  <tr>
+    <td>TAPIR</td>
+    <td>Kubric-Panning-MOViE</td>
+    <td><a href="https://huggingface.co/16lemoing/dot/resolve/main/panning_movi_e_tapir.pth">Checkpoint</a></td>
+    <td><a href="https://github.com/16lemoing/dot/blob/main/configs/tapir.json">Config</a></td>
+  </tr>
+  <tr>
+    <td>BootsTAPIR</td>
+    <td>Kubric-Panning-MOViE + Real data</td>
+    <td><a href="https://huggingface.co/16lemoing/dot/resolve/main/panning_movi_e_plus_bootstapir.pth">Checkpoint</a></td>
+    <td><a href="https://github.com/16lemoing/dot/blob/main/configs/bootstapir.json">Config</a></td>
+  </tr>
+</table>
+
+### Optical flow refinement
+&rarr; *get dense motion from sparse point tracks*
+
+<table>
+  <tr>
+    <th colspan="1">Model</th>
+    <th colspan="1">Input</th>
+    <th colspan="1">Data</th>
+    <th colspan="2">Download</th>
+  </tr>
+  <tr>
+    <td>RAFT</td>
+    <td>CoTracker</td>
+    <td>Kubric-MOViF</td>
+    <td><a href="https://huggingface.co/16lemoing/dot/resolve/main/movi_f_raft_patch_4_alpha.pth">Checkpoint</a></td>
+    <td><a href="https://github.com/16lemoing/dot/blob/main/configs/raft_patch_4_alpha.json">Config</a></td>
+  </tr>
+</table>
+
+<details>
+<summary>Command line to download all checkpoints.</summary>
+
+```
+wget -P checkpoints https://huggingface.co/16lemoing/dot/resolve/main/cvo_raft_patch_8.pth
+wget -P checkpoints https://huggingface.co/16lemoing/dot/resolve/main/movi_f_raft_patch_4_alpha.pth
+wget -P checkpoints https://huggingface.co/16lemoing/dot/resolve/main/movi_f_cotracker_patch_4_wind_8.pth
+wget -P checkpoints https://huggingface.co/16lemoing/dot/resolve/main/movi_f_cotracker2_patch_4_wind_8.pth
+wget -P checkpoints https://huggingface.co/16lemoing/dot/resolve/main/panning_movi_e_tapir.pth
+wget -P checkpoints https://huggingface.co/16lemoing/dot/resolve/main/panning_movi_e_plus_bootstapir.pth
+```
+</details>
+
+
 
 
 ## Acknowledgements
