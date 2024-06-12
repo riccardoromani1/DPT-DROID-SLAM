@@ -157,12 +157,10 @@ with parameters in brackets optional.
 
 ## Evaluation
 To test our implementation additionally to the data from [TartanAir](https://theairlab.org/tartanair-dataset/) we created a more computational feasible and comparable datasets using Blender for which we also had the groud truth depthmaps and camera positions.
-Videos - need folder or so somewhere
-depths - file
-camera pos txt file
+The videos, depthmaps, camerapositions can be downloaded from the [polybox](https://polybox.ethz.ch/index.php/s/1pTOGuFKDkqM5zf).
 
 
 
 ## Acknowledgements
-Data from the original github pages of [DOT](https://github.com/16lemoing/dot) and [DROID-SLAM](https://arxiv.org/abs/2108.10869](https://github.com/princeton-vl/DROID-SLAM) was used to test our implementation. 
+Data from the original github pages of [DOT](https://github.com/16lemoing/dot) and [DROID-SLAM](https://arxiv.org/abs/2108.10869](https://github.com/princeton-vl/DROID-SLAM)) was used to test our implementation. 
 Data from [TartanAir](https://theairlab.org/tartanair-dataset/) was used to train our model. We additionally use evaluation tools from [evo](https://github.com/MichaelGrupp/evo) and [tartanair_tools](https://github.com/castacks/tartanair_tools).
