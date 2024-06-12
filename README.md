@@ -1,9 +1,15 @@
 # DOT-SLAM: DROID-SLAM Optimization Using DOT
 
-In this project [Dense Optical Tracking (DOT)](https://github.com/16lemoing/dot) by Guillaume Le Moing, Jean Ponce, Cordelia Schmid has been integrated into [DROID-SLAM](https://github.com/princeton-vl/DROID-SLAM/tree/main) by Zachary Teed and Jia Deng.
-The goal of this was to overcome one of the major bottlenecks of DROID-SLAM which is in the update, which uses partly a ConvGRU and a iterates over a refiner over and over to get the camera positions and depth map of the current frame. Aside from reducing computational power, we the change we've can be more robust if finetuned and not "just" integerated. DOT is a framework unifying point tracking adn optical flow techniques to these restults without the need to refine the output for each frame as DROID does at the moment. 
+In this project [Dense Optical Tracking (DOT)](https://github.com/16lemoing/dot) (by Guillaume Le Moing, Jean Ponce, Cordelia Schmid) has been integrated into [DROID-SLAM](https://github.com/princeton-vl/DROID-SLAM/tree/main) (by Zachary Teed and Jia Deng).
+The goal of this was to overcome one of the major bottlenecks of DROID-SLAM which is in the update operation, which uses partly a ConvGRU and a iterates over a refiner over and over to get the camera positions and depth map of the current frame. Aside from reducing computational power, using DOT to predict a dense flow field can be more robust if finetuned and not "just" integrated. DOT is a framework unifying point tracking and optical flow techniques without the need to refine the output for each frame as DROID does at the moment.
 
-We achieved similar results as DROID-SLAM by integrating DOT, it however also lost some robustness as first of all the training set has not be retrained due to lack of computational power, not having a loops closure anymore as DROIDs previous update function for the depths and camera position had. This can be all finetuned more and many overly robust things from DOT are not used, like prediction of movement out of a frame is not used so many things can be omitted there as well to decrease computation time and power. 
+We achieved similar results as DROID-SLAM by integrating DOT, it however also lost some robustness as first of all the training set has not be retrained due to lack of computational power, not having a loop closure anymore as DROIDs previous update function for the depths and camera position had. This can be all finetuned more and many overly robust things from DOT are not used, like prediction of movement out of a frame is not used so many things can be omitted there as well to decrease computation time and power. 
+
+
+
+IMAGES COLMPARISON OF DROD VS DOT
+
+
 
 ## Remarks before trying to run DPT-DROID-SLAM
 
@@ -11,7 +17,7 @@ Running the demos will require..
 * a GPU with at **least** 11G of memory.
 * short video
   
-For setting up the environment we recoommend working on:
+For setting up the environment we recommend working on:
 * Ubuntu 20.04 LTS
 * Cuda 11.3
 * CUDNN 8.2.1.32
