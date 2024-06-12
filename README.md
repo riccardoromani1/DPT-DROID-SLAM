@@ -10,7 +10,7 @@ We achieved similar results as DROID-SLAM by integrating DOT, it however also lo
 IMAGES COLMPARISON OF DROD VS DOT
 <p align="center">
   <img src="images/0001.png" alt="Image 1" width="45%" style="display: inline-block; margin-right: 10px;" />
-  <img src="iamges/0002.png" alt="Image 2" width="45%" style="display: inline-block;" />
+  <img src="images/0002.png" alt="Image 2" width="45%" style="display: inline-block;" />
 </p>
 ## Remarks before trying to run DPT-DROID-SLAM
 
