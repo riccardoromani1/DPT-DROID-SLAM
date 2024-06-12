@@ -15,23 +15,11 @@ IMAGES COLMPARISON OF DROD VS DOT
 </p>
 
 <p align="center">
-  <span style="display: inline-block; width: 45%; margin-right: 10px;">Description of Image 1</span>
+  <span style="display: inline-block; width: 45%; margin-right: 100px;">Description of Image 1</span>
   <span style="display: inline-block; width: 45%;">Description of Image 2</span>
 </p>
 
 
-<p align="center">
-  <span style="display: inline-block; text-align: center; margin-right: 10px;">
-    <img src="images/0001.png" alt="Image 1" width="45%" />
-    <br />
-    Description of Image 1
-  </span>
-  <span style="display: inline-block; text-align: center;">
-    <img src="images/0002.png" alt="Image 2" width="45%" />
-    <br />
-    Description of Image 2
-  </span>
-</p>
 
 
 
