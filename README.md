@@ -15,7 +15,7 @@ IMAGES COLMPARISON OF DROD VS DOT
     Description of Image 1
   </span>
   <span style="display: inline-block; text-align: center;">
-    <img src="iamges/0002" alt="Image 2" width="45%" />
+    <img src="images/0002.png" alt="Image 2" width="45%" />
     <br />
     Description of Image 2
   </span>
