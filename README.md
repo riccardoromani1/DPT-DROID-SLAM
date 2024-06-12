@@ -8,6 +8,18 @@ We achieved similar results as DROID-SLAM by integrating DOT, it however also lo
 
 
 IMAGES COLMPARISON OF DROD VS DOT
+
+<p align="center">
+  <img src="images/0001.png" alt="Image 1" width="45%" style="display: inline-block; margin-right: 10px;" />
+  <img src="images/0001.png" alt="Image 2" width="45%" style="display: inline-block;" />
+</p>
+
+<p align="center">
+  <span style="display: inline-block; width: 45%; margin-right: 10px;">Description of Image 1</span>
+  <span style="display: inline-block; width: 45%;">Description of Image 2</span>
+</p>
+
+
 <p align="center">
   <span style="display: inline-block; text-align: center; margin-right: 10px;">
     <img src="images/0001.png" alt="Image 1" width="45%" />
@@ -20,6 +32,9 @@ IMAGES COLMPARISON OF DROD VS DOT
     Description of Image 2
   </span>
 </p>
+
+
+
 ## Remarks before trying to run DPT-DROID-SLAM
 Running the demos will require..
 * a GPU with at **least** 11G of memory.
