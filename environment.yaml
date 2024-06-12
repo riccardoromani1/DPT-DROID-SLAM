@@ -23,3 +23,7 @@ dependencies:
 
   - timm
   - einops
+  - einshape
+  - lmdb
+  - av
+  - mediapy
