@@ -156,38 +156,13 @@ fx fy cx cy [k1 k2 p1 p2 [ k3 [ k4 k5 k6 ]]]
 with parameters in brackets optional.
 
 ## Evaluation
-We provide evaluation scripts for TartanAir, EuRoC, and TUM. EuRoC and TUM can be run on a 1080Ti. The TartanAir and ETH will require 24G of memory.
-
-### TartanAir (Mono + Stereo)
-Download the [TartanAir](https://theairlab.org/tartanair-dataset/) dataset using the script `thirdparty/tartanair_tools/download_training.py` and put them in `datasets/TartanAir`
-```Bash
-./tools/validate_tartanair.sh --plot_curve            # monocular eval
-./tools/validate_tartanair.sh --plot_curve  --stereo  # stereo eval
-```
-
-### EuRoC (Mono + Stereo)
-Download the [EuRoC](https://projects.asl.ethz.ch/datasets/doku.php?id=kmavvisualinertialdatasets) sequences (ASL format) and put them in `datasets/EuRoC`
-```Bash
-./tools/evaluate_euroc.sh                             # monocular eval
-./tools/evaluate_euroc.sh --stereo                    # stereo eval
-```
-
-### TUM-RGBD (Mono)
-Download the fr1 sequences from [TUM-RGBD](https://vision.in.tum.de/data/datasets/rgbd-dataset/download) and put them in `datasets/TUM-RGBD`
-```Bash
-./tools/evaluate_tum.sh                               # monocular eval
-```
-
-### ETH3D (RGB-D)
-Download the [ETH3D](https://www.eth3d.net/slam_datasets) dataset
-```Bash
-./tools/evaluate_eth3d.sh                             # RGB-D eval
-```
-
-
-
+To test our implementation additionally to the data from [TartanAir](https://theairlab.org/tartanair-dataset/) we created a more computational feasible and comparable datasets using Blender for which we also had the groud truth depthmaps and camera positions.
+Videos - need folder or so somewhere
+depths - file
+camera pos txt file
 
 
 
 ## Acknowledgements
+Data from the original github pages of [DOT](https://github.com/16lemoing/dot) and [DROID-SLAM](https://arxiv.org/abs/2108.10869](https://github.com/princeton-vl/DROID-SLAM) was used to test our implementation. 
 Data from [TartanAir](https://theairlab.org/tartanair-dataset/) was used to train our model. We additionally use evaluation tools from [evo](https://github.com/MichaelGrupp/evo) and [tartanair_tools](https://github.com/castacks/tartanair_tools).
