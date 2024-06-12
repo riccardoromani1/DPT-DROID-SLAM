@@ -9,8 +9,8 @@ We achieved similar results as DROID-SLAM by integrating DOT, it however also lo
 
 IMAGES COLMPARISON OF DROD VS DOT
 <p align="center">
-  <img src="images/image1.png" alt="Image 1" width="45%" style="display: inline-block; margin-right: 10px;" />
-  <img src="iamges/image2.png" alt="Image 2" width="45%" style="display: inline-block;" />
+  <img src="images/0001.png" alt="Image 1" width="45%" style="display: inline-block; margin-right: 10px;" />
+  <img src="iamges/0002.png" alt="Image 2" width="45%" style="display: inline-block;" />
 </p>
 ## Remarks before trying to run DPT-DROID-SLAM
 
@@ -175,4 +175,3 @@ The videos, depthmaps, camerapositions can be downloaded from the [polybox](http
 
 ## Acknowledgements
 Data from the original github pages of [DOT](https://github.com/16lemoing/dot) and [DROID-SLAM](https://arxiv.org/abs/2108.10869](https://github.com/princeton-vl/DROID-SLAM)) was used to test our implementation. 
-Data from [TartanAir](https://theairlab.org/tartanair-dataset/) was used to train our model. We additionally use evaluation tools from [evo](https://github.com/MichaelGrupp/evo) and [tartanair_tools](https://github.com/castacks/tartanair_tools).
