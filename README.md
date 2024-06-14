@@ -23,7 +23,7 @@ IMAGES COLMPARISON OF DROD VS DOT
 
 
 
-## Remarks before trying to run DPT-DROID-SLAM
+## Remarks before trying to run DOT-Slam
 Running the demos will require..
 * a GPU with at **least** 11G of memory.
 * short video
