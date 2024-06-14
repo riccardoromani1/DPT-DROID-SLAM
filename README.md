@@ -10,8 +10,8 @@ We achieved similar results as DROID-SLAM by integrating DOT, it however also lo
 IMAGES COLMPARISON OF DROID-SLAM vs DOT-SLAM
 
 <p align="center">
-  <img src="images/bench_droidslam.png" alt="Image 1" width="45%" style="display: inline-block; margin-right: 10px;" />
-  <img src="images/bench_dotslam.png" alt="Image 2" width="45%" style="display: inline-block;" />
+  <img src="images/bench_droidslam.jpeg" alt="Image 1" width="45%" style="display: inline-block; margin-right: 10px;" />
+  <img src="images/bench_dotslam.jpeg" alt="Image 2" width="45%" style="display: inline-block;" />
 </p>
 
 <p align="center">
@@ -20,8 +20,8 @@ IMAGES COLMPARISON OF DROID-SLAM vs DOT-SLAM
 </p>
 
 <p align="center">
-  <img src="images/duck_droidslam.png" alt="Image 1" width="45%" style="display: inline-block; margin-right: 10px;" />
-  <img src="images/duck_dotslam.png" alt="Image 2" width="45%" style="display: inline-block;" />
+  <img src="images/duck_droidslam.jpeg" alt="Image 1" width="45%" style="display: inline-block; margin-right: 10px;" />
+  <img src="images/duck_dotslam.jpeg" alt="Image 2" width="45%" style="display: inline-block;" />
 </p>
 
 <p align="center">
