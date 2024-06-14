@@ -7,11 +7,21 @@ We achieved similar results as DROID-SLAM by integrating DOT, it however also lo
 
 
 
-IMAGES COLMPARISON OF DROD VS DOT
+IMAGES COLMPARISON OF DROID-SLAM vs DOT-SLAM
 
 <p align="center">
-  <img src="images/0001.png" alt="Image 1" width="45%" style="display: inline-block; margin-right: 10px;" />
-  <img src="images/0001.png" alt="Image 2" width="45%" style="display: inline-block;" />
+  <img src="bench_droidslam.png" alt="Image 1" width="45%" style="display: inline-block; margin-right: 10px;" />
+  <img src="bench_dotslam.png" alt="Image 2" width="45%" style="display: inline-block;" />
+</p>
+
+<p align="center">
+  <span style="display: inline-block; width: 45%;">Description of Image 1</span>
+  <span style="display: inline-block; width: 45%;">Description of Image 2</span>
+</p>
+
+<p align="center">
+  <img src="duck_droidslam.png" alt="Image 1" width="45%" style="display: inline-block; margin-right: 10px;" />
+  <img src="duck_dotslam.png" alt="Image 2" width="45%" style="display: inline-block;" />
 </p>
 
 <p align="center">
@@ -22,8 +32,7 @@ IMAGES COLMPARISON OF DROD VS DOT
 
 
 
-
-## Remarks before trying to run DOT-Slam
+## Remarks before trying to run DOT-SLAM
 Running the demos will require..
 * a GPU with at **least** 11G of memory.
 * short video
