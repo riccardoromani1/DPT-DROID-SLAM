@@ -15,8 +15,8 @@ IMAGES COLMPARISON OF DROID-SLAM vs DOT-SLAM
 </p>
 
 <p align="center">
-  <span style="display: inline-block; width: 45%;">Bench in DROID-SLAM</span>
-  <span style="display: inline-block; width: 45%;">Bench in DOT-SLAM</span>
+  <span style="display: inline-block; width: 45%;">Bench in DROID-SLAM compared to DOT-SLAM</span>
+  <span style="display: inline-block; width: 45%;"></span>
 </p>
 
 <p align="center">
@@ -25,8 +25,8 @@ IMAGES COLMPARISON OF DROID-SLAM vs DOT-SLAM
 </p>
 
 <p align="center">
-  <span style="display: inline-block; width: 45%;">DUCK in DROID-SLAM</span>
-  <span style="display: inline-block; width: 45%;">DUCK in DOT-SLAM</span>
+  <span style="display: inline-block; width: 45%;">DUCK in DROID-SLAM compared to DOT-SLAM</span>
+  <span style="display: inline-block; width: 45%;"></span>
 </p>
 
 
