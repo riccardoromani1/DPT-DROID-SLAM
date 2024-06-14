@@ -10,13 +10,13 @@ We achieved similar results as DROID-SLAM by integrating DOT, it however also lo
 IMAGES COLMPARISON OF DROID-SLAM vs DOT-SLAM
 
 <p align="center">
-  <img src="images/bench_droidslam.jpeg" alt="Image 1" width="45%" style="display: inline-block; margin-right: 10px;" />
-  <img src="images/bench_dotslam.jpeg" alt="Image 2" width="45%" style="display: inline-block;" />
+  <img src="images/bench_droidslam.jpeg" alt="Image 1" width="35%" style="display: inline-block; margin-right: 10px;" />
+  <img src="images/bench_dotslam.jpeg" alt="Image 2" width="50%" style="display: inline-block;" />
 </p>
 
 <p align="center">
-  <span style="display: inline-block; width: 45%;">Description of Image 1</span>
-  <span style="display: inline-block; width: 45%;">Description of Image 2</span>
+  <span style="display: inline-block; width: 45%;">Bench in DROID-SLAM</span>
+  <span style="display: inline-block; width: 45%;">Bench in DOT-SLAM</span>
 </p>
 
 <p align="center">
@@ -25,8 +25,8 @@ IMAGES COLMPARISON OF DROID-SLAM vs DOT-SLAM
 </p>
 
 <p align="center">
-  <span style="display: inline-block; width: 45%;">Description of Image 1</span>
-  <span style="display: inline-block; width: 45%;">Description of Image 2</span>
+  <span style="display: inline-block; width: 45%;">DUCK in DROID-SLAM</span>
+  <span style="display: inline-block; width: 45%;">DUCK in DOT-SLAM</span>
 </p>
 
 
