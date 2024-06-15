@@ -13,8 +13,8 @@ We achieved similar results as DROID-SLAM by integrating DOT, it however also lo
 </p>
 
 <p align="center">
-  <span style="display: inline-block; width: 45%;">Bench in DROID-SLAM compared to DOT-SLAM</span>
-  <span style="display: inline-block; width: 45%;"></span>
+  <span style="display: inline-block; width: 40%;">Bench in DROID-SLAM compared to DOT-SLAM</span>
+  <span style="display: inline-block; width: 40%;"></span>
 </p>
 
 <p align="center">
@@ -23,8 +23,8 @@ We achieved similar results as DROID-SLAM by integrating DOT, it however also lo
 </p>
 
 <p align="center">
-  <span style="display: inline-block; width: 45%;">DUCK in DROID-SLAM compared to DOT-SLAM</span>
-  <span style="display: inline-block; width: 45%;"></span>
+  <span style="display: inline-block; width: 40%;">DUCK in DROID-SLAM compared to DOT-SLAM</span>
+  <span style="display: inline-block; width: 40%;"></span>
 </p>
 
 
