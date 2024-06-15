@@ -7,8 +7,6 @@ We achieved similar results as DROID-SLAM by integrating DOT, it however also lo
 
 
 
-IMAGES COLMPARISON OF DROID-SLAM vs DOT-SLAM
-
 <p align="center">
   <img src="images/bench_droidslam.jpeg" alt="Image 1" width="35%" style="display: inline-block; margin-right: 10px;" />
   <img src="images/bench_dotslam.jpeg" alt="Image 2" width="50%" style="display: inline-block;" />
